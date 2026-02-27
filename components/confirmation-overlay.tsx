@@ -3,6 +3,34 @@
 import { useEffect, useCallback } from "react";
 import type { Song } from "@/lib/supabase/types";
 
+// --- Dynamic mesh gradient utilities ---
+
+interface SongPalette {
+  primary: string;   // CSS hsl() color string
+  secondary: string; // CSS hsl() color string
+  xPos: number;      // 25-75 (percentage for left positioning)
+  yPos: number;      // 20-60 (percentage for top positioning)
+}
+
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+}
+
+function getSongPalette(title: string, artist: string | null): SongPalette {
+  const hue1 = hashString(title) % 360;
+  const hue2 = (hue1 + 40 + hashString(artist ?? "")) % 360;
+  return {
+    primary: `hsl(${hue1}, 75%, 50%)`,
+    secondary: `hsl(${hue2}, 65%, 40%)`,
+    xPos: 25 + (hashString(title + "x") % 50),
+    yPos: 20 + (hashString(title + "y") % 40),
+  };
+}
+
 interface ConfirmationOverlayProps {
   song: Song;
   venueName: string;
@@ -14,6 +42,8 @@ export function ConfirmationOverlay({
   venueName,
   onDismiss,
 }: ConfirmationOverlayProps) {
+  const palette = getSongPalette(song.title, song.artist);
+
   // Fire confetti on mount (dynamic import keeps it out of main bundle)
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -64,14 +94,38 @@ export function ConfirmationOverlay({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-surface/95 backdrop-blur-sm">
-      {/* Radial amber glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.12) 0%, transparent 60%)",
-        }}
-      />
+      {/* Dynamic mesh gradient — unique per song */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Orb 1: Song-primary color, large */}
+        <div
+          className="absolute w-[600px] h-[600px] rounded-full blur-[80px] opacity-25"
+          style={{
+            background: palette.primary,
+            top: `${palette.yPos}%`,
+            left: `${palette.xPos}%`,
+            transform: "translate(-50%, -50%)",
+          }}
+        />
+        {/* Orb 2: Song-secondary color, medium */}
+        <div
+          className="absolute w-[400px] h-[400px] rounded-full blur-[60px] opacity-15"
+          style={{
+            background: palette.secondary,
+            bottom: "20%",
+            right: "15%",
+          }}
+        />
+        {/* Orb 3: Amber brand anchor, center */}
+        <div
+          className="absolute w-[300px] h-[300px] rounded-full blur-[40px] opacity-10"
+          style={{
+            background: "#F59E0B",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+          }}
+        />
+      </div>
 
       <div className="relative flex flex-col items-center px-8 text-center max-w-sm">
         {/* Checkmark */}
