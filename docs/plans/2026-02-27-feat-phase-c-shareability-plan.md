@@ -1,7 +1,7 @@
 ---
 title: "Phase C — Shareability (Dynamic Gradients, Musical Particles, Request Badge)"
 type: feat
-status: active
+status: completed
 date: 2026-02-27
 origin: docs/plans/design-polish-handoff.md
 feed_forward:
@@ -113,12 +113,12 @@ function getSongPalette(title: string, artist: string | null): SongPalette {
 
 ### Acceptance criteria
 
-- [ ] Every song title+artist combo produces a visually distinct gradient
-- [ ] Same song always produces the same gradient (deterministic)
-- [ ] Amber core glow preserves brand consistency
-- [ ] Orbs use inline `style` for dynamic positioning (not Tailwind)
-- [ ] `pointer-events-none` on gradient container
-- [ ] Blur values are 80/60/40px (NOT 150/120/100)
+- [x] Every song title+artist combo produces a visually distinct gradient
+- [x] Same song always produces the same gradient (deterministic)
+- [x] Amber core glow preserves brand consistency
+- [x] Orbs use inline `style` for dynamic positioning (not Tailwind)
+- [x] `pointer-events-none` on gradient container
+- [x] Blur values are 80/60/40px (NOT 150/120/100)
 
 **Commit after this step.**
 
@@ -178,11 +178,11 @@ function getSongPalette(title: string, artist: string | null): SongPalette {
 
 ### Acceptance criteria
 
-- [ ] **8** musical notes drift upward with staggered timing
-- [ ] 3 sonic rings expand outward from checkmark center
-- [ ] Existing confetti still fires (all three effects layer together)
-- [ ] Particles don't cause layout shift (absolute positioned, overflow hidden)
-- [ ] `prefers-reduced-motion` check already exists — animations respect it via globals.css safety net
+- [x] **8** musical notes drift upward with staggered timing
+- [x] 3 sonic rings expand outward from checkmark center
+- [x] Existing confetti still fires (all three effects layer together)
+- [x] Particles don't cause layout shift (absolute positioned, overflow hidden)
+- [x] `prefers-reduced-motion` check already exists — animations respect it via globals.css safety net
 
 **Commit after this step.**
 
@@ -255,11 +255,11 @@ When `requestCount` is `null`, the badge shows a subtle shimmer placeholder. Whe
 
 ### Acceptance criteria
 
-- [ ] Overlay appears instantly after insert (no blocking on count query)
-- [ ] Count query uses `head: true` (no data transfer, count only)
-- [ ] Count query failure doesn't break the overlay
-- [ ] Types updated: `requestCount: number | null` in all three files
-- [ ] Badge shows shimmer/placeholder when count is null
+- [x] Overlay appears instantly after insert (no blocking on count query)
+- [x] Count query uses `head: true` (no data transfer, count only)
+- [x] Count query failure doesn't break the overlay
+- [x] Types updated: `requestCount: number | null` in all three files
+- [x] Badge shows shimmer/placeholder when count is null
 
 **Commit after this step.**
 
@@ -335,13 +335,13 @@ Position at the very bottom of the overlay:
 
 ### Acceptance criteria
 
-- [ ] Request badge shows "Request #N tonight" with actual count (or shimmer if loading)
-- [ ] Time label shows correct period based on current hour
-- [ ] Time label hidden outside 5pm-2am range
-- [ ] Watermark visible at 30% opacity, doesn't interfere with buttons
-- [ ] All new elements have `animate-fade-up` with appropriate stagger delays
-- [ ] No `transition-all` used anywhere
-- [ ] No `backdrop-blur` on the badge pill
+- [x] Request badge shows "Request #N tonight" with actual count (or shimmer if loading)
+- [x] Time label shows correct period based on current hour
+- [x] Time label hidden outside 5pm-2am range
+- [x] Watermark visible at 30% opacity, doesn't interfere with buttons
+- [x] All new elements have `animate-fade-up` with appropriate stagger delays
+- [x] No `transition-all` used anywhere
+- [x] No `backdrop-blur` on the badge pill
 
 **Commit after this step.**
 
