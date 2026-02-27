@@ -109,8 +109,15 @@ create policy "insert_requests_validated" on song_requests
       where songs.id = song_id
         and songs.is_active = true
     )
-    and count_session_requests(gig_id, session_id) < 2
+    and count_session_requests(gig_id, session_id) < 5
   );
+
+-- Performer toggle: allow updating requests_open on active gig
+-- (API route checks performer auth cookie before calling this)
+create policy "update_gig_requests_open" on gigs
+  for update to anon
+  using (is_active = true)
+  with check (is_active = true);
 
 -- ============================================
 -- REALTIME
