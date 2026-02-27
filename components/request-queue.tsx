@@ -349,10 +349,13 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
               className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-all"
               style={{
                 animationDelay: `${i * 0.05}s`,
+                boxShadow: song.count >= 3
+                  ? '0 0 24px -8px rgba(245, 158, 11, 0.15)'
+                  : 'none',
               }}
             >
-              {/* Left accent bar */}
-              <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-accent" />
+              {/* Left accent bar — gradient fade */}
+              <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-accent/0 via-accent/40 to-accent/0" />
 
               {/* Count badge */}
               <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center">
