@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   // Check performer auth
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   const { gigId, requestsOpen } = await request.json();
 
-  const supabase = await createClient();
+  const supabase = createServiceClient();
   const { error } = await supabase
     .from("gigs")
     .update({ requests_open: requestsOpen })

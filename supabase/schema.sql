@@ -112,18 +112,9 @@ create policy "insert_requests_validated" on song_requests
     and count_session_requests(gig_id, session_id) < 5
   );
 
--- Performer dismiss: allow deleting requests for active gig
--- (API route checks performer auth cookie before calling this)
-create policy "delete_requests_for_active_gig" on song_requests
-  for delete to anon
-  using (gig_id in (select id from gigs where is_active = true));
-
--- Performer toggle: allow updating requests_open on active gig
--- (API route checks performer auth cookie before calling this)
-create policy "update_gig_requests_open" on gigs
-  for update to anon
-  using (is_active = true)
-  with check (is_active = true);
+-- Performer dismiss & toggle: handled via service role key in API routes.
+-- No anon DELETE or UPDATE policies needed — the API route cookie check
+-- is the sole auth gate, and the service role key bypasses RLS.
 
 -- ============================================
 -- REALTIME
