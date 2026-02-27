@@ -165,11 +165,17 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
   // Wake Lock — prevent screen from dimming on music stand
   useEffect(() => {
     let wakeLock: WakeLockSentinel | null = null;
+    let cancelled = false;
 
     async function requestWakeLock() {
       try {
         if ("wakeLock" in navigator) {
-          wakeLock = await navigator.wakeLock.request("screen");
+          const lock = await navigator.wakeLock.request("screen");
+          if (cancelled) {
+            lock.release();
+            return;
+          }
+          wakeLock = lock;
         }
       } catch {
         // Wake Lock can fail silently (e.g., low battery)
@@ -187,6 +193,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      cancelled = true;
       wakeLock?.release();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
