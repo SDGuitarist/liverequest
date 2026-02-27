@@ -88,9 +88,9 @@ export function SongCard({
     <button
       onClick={handleRequest}
       disabled={isSending || isSent}
-      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.98] border ${
+      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.98] active:brightness-95 border ${
         isSent
-          ? "bg-accent-surface border-accent/20 shadow-[0_0_24px_-8px_rgba(245,158,11,0.15)]"
+          ? "bg-accent-surface border-accent/20 shadow-[0_0_24px_-8px_rgba(245,158,11,0.15)] animate-[success-glow_0.8s_ease-out]"
           : isError
             ? "bg-surface-raised border-danger/20"
             : "bg-surface-raised border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover shadow-[0_0_0_0_rgba(245,158,11,0)] hover:shadow-[0_0_20px_-4px_rgba(245,158,11,0.08)]"
@@ -128,13 +128,14 @@ export function SongCard({
           <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         )}
         {isSent && (
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center animate-[circle-fill_0.4s_cubic-bezier(0.34,1.56,0.64,1)_forwards]">
             <svg
               className="w-4 h-4 text-accent"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
               strokeWidth={3}
+              style={{ strokeDasharray: 24, strokeDashoffset: 24, animation: 'draw-check 0.4s ease-out 0.3s forwards' }}
             >
               <path
                 strokeLinecap="round"
@@ -145,7 +146,7 @@ export function SongCard({
           </div>
         )}
         {isError && (
-          <div className="w-8 h-8 rounded-full bg-danger/20 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-danger/20 flex items-center justify-center animate-[shake_0.4s_ease-out]">
             <span className="text-danger text-body font-bold">!</span>
           </div>
         )}
