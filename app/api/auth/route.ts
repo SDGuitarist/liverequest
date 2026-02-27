@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { createAuthToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -41,9 +42,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Wrong password" }, { status: 401 });
   }
 
-  // Set auth cookie
+  // Set auth cookie with crypto token
+  const token = createAuthToken();
   const cookieStore = await cookies();
-  cookieStore.set("performer_auth", "authenticated", {
+  cookieStore.set("performer_auth", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",

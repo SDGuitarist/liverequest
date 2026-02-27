@@ -1,16 +1,13 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RequestQueue } from "@/components/request-queue";
+import { isAuthenticated } from "@/lib/auth";
 
 // Don't cache — dashboard must always show fresh data
 export const dynamic = "force-dynamic";
 
 export default async function PerformerDashboard() {
-  // Check auth cookie
-  const cookieStore = await cookies();
-  const auth = cookieStore.get("performer_auth");
-  if (!auth || auth.value !== "authenticated") {
+  if (!(await isAuthenticated())) {
     redirect("/performer");
   }
 

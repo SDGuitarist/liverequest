@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
+import { isAuthenticated } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
-  // Check performer auth
-  const cookieStore = await cookies();
-  const auth = cookieStore.get("performer_auth");
-  if (!auth || auth.value !== "authenticated") {
+  if (!(await isAuthenticated())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
