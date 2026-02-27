@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { hapticDismiss } from "@/lib/haptics";
@@ -240,7 +240,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     }
   }
 
-  const grouped = groupRequests(requests);
+  const grouped = useMemo(() => groupRequests(requests), [requests]);
   const totalRequests = requests.length;
   const audienceUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/r/alejandro`;
 

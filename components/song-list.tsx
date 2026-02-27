@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import type { Song, Gig } from "@/lib/supabase/types";
-import { SongCard } from "./song-card";
+import { SongCard, IDLE_STATE } from "./song-card";
 import { ConfirmationOverlay } from "./confirmation-overlay";
 
 type RequestState =
@@ -32,13 +32,14 @@ export function SongList({ songs, gig }: SongListProps) {
     (s) => s.status === "sent"
   ).length;
 
-  const filteredSongs = songs.filter((song) => {
+  const filteredSongs = useMemo(() => {
     const q = search.toLowerCase();
-    return (
-      song.title.toLowerCase().includes(q) ||
-      (song.artist && song.artist.toLowerCase().includes(q))
+    return songs.filter(
+      (song) =>
+        song.title.toLowerCase().includes(q) ||
+        (song.artist && song.artist.toLowerCase().includes(q))
     );
-  });
+  }, [songs, search]);
 
   const handleStateChange = useCallback(
     (songId: string, state: RequestState) => {
@@ -124,7 +125,7 @@ export function SongList({ songs, gig }: SongListProps) {
           </p>
         ) : (
           filteredSongs.map((song, i) => {
-            const state = requestStates[song.id] ?? { status: "idle" };
+            const state = requestStates[song.id] ?? IDLE_STATE;
             // If at limit and this song hasn't been sent yet, show as idle but won't submit
             const effectiveState =
               atLimit && state.status === "idle"

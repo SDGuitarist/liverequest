@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, memo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/session";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -21,7 +21,9 @@ interface SongCardProps {
   onCountUpdate: (count: number) => void;
 }
 
-export function SongCard({
+export const IDLE_STATE: RequestState = { status: "idle" };
+
+export const SongCard = memo(function SongCard({
   song,
   gigId,
   requestState,
@@ -196,4 +198,4 @@ export function SongCard({
       </div>
     </button>
   );
-}
+});
