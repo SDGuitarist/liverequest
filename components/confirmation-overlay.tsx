@@ -132,7 +132,7 @@ export function ConfirmationOverlay({
         >
           <button
             onClick={handleShare}
-            className="w-full py-3 px-6 rounded-full bg-accent text-surface font-display font-bold text-body transition-colors hover:bg-accent-bright active:scale-[0.98]"
+            className="w-full py-3 px-6 rounded-full bg-gradient-to-r from-accent to-accent-bright text-surface font-display font-bold text-body shadow-[0_4px_16px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_24px_rgba(245,158,11,0.4)] active:scale-[0.98] active:shadow-[0_2px_8px_rgba(245,158,11,0.25)] transition-[box-shadow,transform] duration-200"
           >
             Share
           </button>

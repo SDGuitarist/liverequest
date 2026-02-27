@@ -254,7 +254,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
           >
             <div
               className={`w-2 h-2 rounded-full ${
-                connected ? "bg-success" : "bg-danger animate-pulse"
+                connected ? "bg-success animate-[live-glow_2s_ease-in-out_infinite]" : "bg-danger animate-pulse"
               }`}
             />
             <span
