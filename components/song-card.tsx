@@ -88,7 +88,7 @@ export function SongCard({
     <button
       onClick={handleRequest}
       disabled={isSending || isSent}
-      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[64px] text-left transition-all duration-200 active:scale-[0.98] border ${
+      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-all duration-200 active:scale-[0.98] border ${
         isSent
           ? "bg-accent-surface border-accent/20"
           : isError
@@ -107,7 +107,7 @@ export function SongCard({
 
       {/* Song info */}
       <div className="flex-1 min-w-0 pl-1">
-        <p className="font-display text-song font-semibold text-text-primary truncate">
+        <p className="font-display text-song font-bold text-text-primary truncate">
           {song.title}
         </p>
         {song.artist && (
@@ -123,7 +123,7 @@ export function SongCard({
       </div>
 
       {/* Action indicator */}
-      <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors">
+      <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors">
         {isSending && (
           <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         )}
