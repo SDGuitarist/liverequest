@@ -84,29 +84,32 @@ create policy "Public read requests for active gigs" on song_requests
   for select to anon
   using (gig_id in (select id from gigs where is_active = true));
 
+-- Helper function: count requests per session (SECURITY DEFINER bypasses RLS to avoid recursion)
+create or replace function count_session_requests(p_gig_id uuid, p_session_id text)
+returns bigint
+language sql
+security definer
+as $$
+  select count(*) from song_requests
+  where gig_id = p_gig_id and session_id = p_session_id;
+$$;
+
 -- Public insert: song requests (hardened — validates gig active + open + enforces limit)
-create policy "Insert requests on open gigs with limit" on song_requests
+create policy "insert_requests_validated" on song_requests
   for insert to anon
   with check (
-    -- Gig must exist, be active, and have requests open
     exists (
       select 1 from gigs
       where gigs.id = gig_id
         and gigs.is_active = true
         and gigs.requests_open = true
     )
-    -- Song must exist and be active
     and exists (
       select 1 from songs
       where songs.id = song_id
         and songs.is_active = true
     )
-    -- Enforce 5-request limit per session per gig
-    and (
-      select count(*) from song_requests sr
-      where sr.gig_id = song_requests.gig_id
-        and sr.session_id = song_requests.session_id
-    ) < 5
+    and count_session_requests(gig_id, session_id) < 2
   );
 
 -- ============================================

@@ -593,31 +593,31 @@ Tasks:
 **Goal: Audience can scan QR, see songs, and request a song with celebration.**
 
 Tasks:
-- [ ] Build `app/r/[slug]/page.tsx` — ISR song list page (`export const revalidate = 60`)
+- [x] Build `app/r/[slug]/page.tsx` — ISR song list page (`export const revalidate = 60`)
   - Server Component: fetch active gig + songs from Supabase server client
   - If no active gig or requests closed, show fallback message
   - Pass songs + gig data to `<SongList>` client component
-- [ ] Build `app/r/[slug]/loading.tsx` — skeleton UI (built-in Suspense boundary)
-- [ ] Build `lib/session.ts` — anonymous session ID (`crypto.randomUUID()` + localStorage)
-- [ ] Build `components/song-list.tsx` — Client Component with:
+- [x] Build `app/r/[slug]/loading.tsx` — skeleton UI (built-in Suspense boundary)
+- [x] Build `lib/session.ts` — anonymous session ID (`crypto.randomUUID()` + localStorage)
+- [x] Build `components/song-list.tsx` — Client Component with:
   - Sticky search bar with `backdrop-blur-xl`
   - Alphabetical song list
   - State for requested song IDs, overlay visibility
   - `useRef` gate to prevent double-tap
   - Pessimistic `pendingCount` ref for request limit
-- [ ] Build `components/song-card.tsx` — song row with:
+- [x] Build `components/song-card.tsx` — song row with:
   - 60px minimum height, amber "+" icon, `active:scale-[0.98]` press animation
   - Discriminated union state: idle → sending → sent → error
   - Client-side INSERT to Supabase (no API route)
   - Handle unique constraint violation (silently swallow)
   - Handle RLS rejection when gig is closed (graceful toast)
-- [ ] Build `components/confirmation-overlay.tsx` — fullscreen celebration:
+- [x] Build `components/confirmation-overlay.tsx` — fullscreen celebration:
   - Dynamic import: `import('canvas-confetti')` on mount
   - Staggered fade-up animations (checkmark → label → song → artist → venue)
   - Radial amber glow background
   - Share button (Web Share API with clipboard fallback)
   - "Done" button dismisses overlay
-- [ ] Mobile-first styling: Neon Lounge theme, dark mode, large tap targets
+- [x] Mobile-first styling: Neon Lounge theme, dark mode, large tap targets
 
 **Success criteria:** Open `/r/alejandro` on a phone → see songs → tap one → see confetti overlay + share works → dismiss and request another.
 

@@ -16,7 +16,7 @@ interface SongListProps {
   gig: Gig;
 }
 
-const REQUEST_LIMIT = 5;
+const REQUEST_LIMIT = 2;
 
 export function SongList({ songs, gig }: SongListProps) {
   const [search, setSearch] = useState("");

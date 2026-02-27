@@ -51,7 +51,7 @@ export default async function AudiencePage({ params }: PageProps) {
     .from("songs")
     .select("*")
     .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+    .order("title", { ascending: true });
 
   if (!songs || songs.length === 0) {
     return (
