@@ -24,6 +24,7 @@ export function SongList({ songs, gig }: SongListProps) {
     Record<string, RequestState>
   >({});
   const [overlaySong, setOverlaySong] = useState<Song | null>(null);
+  const [requestCount, setRequestCount] = useState<number | null>(null);
 
   // Pessimistic counter — reserves slots before async insert completes
   const pendingCount = useRef(0);
@@ -58,6 +59,11 @@ export function SongList({ songs, gig }: SongListProps) {
 
   const handleSuccess = useCallback((song: Song) => {
     setOverlaySong(song);
+    setRequestCount(null); // Reset — count will arrive async
+  }, []);
+
+  const handleCountUpdate = useCallback((count: number) => {
+    setRequestCount(count);
   }, []);
 
   const atLimit = totalSent + pendingCount.current >= REQUEST_LIMIT;
@@ -133,6 +139,7 @@ export function SongList({ songs, gig }: SongListProps) {
                 requestState={effectiveState}
                 onStateChange={handleStateChange}
                 onSuccess={handleSuccess}
+                onCountUpdate={handleCountUpdate}
               />
             );
           })
@@ -144,6 +151,7 @@ export function SongList({ songs, gig }: SongListProps) {
         <ConfirmationOverlay
           song={overlaySong}
           venueName={gig.venue_name}
+          requestCount={requestCount}
           onDismiss={() => setOverlaySong(null)}
         />
       )}

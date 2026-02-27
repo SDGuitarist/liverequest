@@ -17,6 +17,7 @@ interface SongCardProps {
   requestState: RequestState;
   onStateChange: (songId: string, state: RequestState) => void;
   onSuccess: (song: Song) => void;
+  onCountUpdate: (count: number) => void;
 }
 
 export function SongCard({
@@ -25,9 +26,23 @@ export function SongCard({
   requestState,
   onStateChange,
   onSuccess,
+  onCountUpdate,
 }: SongCardProps) {
   // useRef gate for double-tap prevention (synchronous, unlike useState)
   const isSubmitting = useRef(false);
+
+  // Fire-and-forget: fetch tonight's request count in background
+  function fetchCountInBackground(supabase: ReturnType<typeof createClient>) {
+    supabase
+      .from("song_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("gig_id", gigId)
+      .then(({ count, error }) => {
+        if (!error && count !== null) {
+          onCountUpdate(count);
+        }
+      });
+  }
 
   async function handleRequest() {
     // Synchronous guard — prevents double-tap even with React batching
@@ -53,6 +68,7 @@ export function SongCard({
         if (error.code === "23505") {
           onStateChange(song.id, { status: "sent" });
           onSuccess(song);
+          fetchCountInBackground(supabase);
         }
         // RLS rejection (gig closed, limit reached, etc.)
         else if (error.code === "42501") {
@@ -69,6 +85,7 @@ export function SongCard({
       } else {
         onStateChange(song.id, { status: "sent" });
         onSuccess(song);
+        fetchCountInBackground(supabase);
       }
     } catch {
       onStateChange(song.id, {

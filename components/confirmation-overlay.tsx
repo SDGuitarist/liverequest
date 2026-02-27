@@ -36,12 +36,14 @@ const NOTES = ["♪", "♫", "♬", "♩"];
 interface ConfirmationOverlayProps {
   song: Song;
   venueName: string;
+  requestCount: number | null;
   onDismiss: () => void;
 }
 
 export function ConfirmationOverlay({
   song,
   venueName,
+  requestCount,
   onDismiss,
 }: ConfirmationOverlayProps) {
   const palette = getSongPalette(song.title, song.artist);
