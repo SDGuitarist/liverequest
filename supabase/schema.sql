@@ -112,6 +112,12 @@ create policy "insert_requests_validated" on song_requests
     and count_session_requests(gig_id, session_id) < 5
   );
 
+-- Performer dismiss: allow deleting requests for active gig
+-- (API route checks performer auth cookie before calling this)
+create policy "delete_requests_for_active_gig" on song_requests
+  for delete to anon
+  using (gig_id in (select id from gigs where is_active = true));
+
 -- Performer toggle: allow updating requests_open on active gig
 -- (API route checks performer auth cookie before calling this)
 create policy "update_gig_requests_open" on gigs

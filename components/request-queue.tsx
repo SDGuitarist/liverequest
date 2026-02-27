@@ -203,6 +203,22 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     setToggling(false);
   }
 
+  // Dismiss a song — mark as played, remove from queue
+  async function handleDismiss(songId: string) {
+    // Optimistic: remove from local state immediately
+    setRequests((prev) => prev.filter((r) => r.song_id !== songId));
+
+    try {
+      await fetch("/api/gig/dismiss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gigId: gig.id, songId }),
+      });
+    } catch {
+      // If it fails, the next re-query will restore them
+    }
+  }
+
   const grouped = groupRequests(requests);
   const totalRequests = requests.length;
   const audienceUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/r/alejandro`;
@@ -320,10 +336,18 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                 )}
               </div>
 
-              {/* Time */}
-              <span className="flex-shrink-0 font-body text-caption text-text-muted">
-                {timeAgo(song.latestRequest)}
-              </span>
+              {/* Time + Done button */}
+              <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                <span className="font-body text-caption text-text-muted">
+                  {timeAgo(song.latestRequest)}
+                </span>
+                <button
+                  onClick={() => handleDismiss(song.songId)}
+                  className="px-3 py-1 rounded-lg font-body text-caption text-success bg-success/10 border border-success/20 hover:bg-success/20 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           ))
         )}
