@@ -70,6 +70,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
   const [showQR, setShowQR] = useState(false);
   const seenIds = useRef(new Set(initialRequests.map((r) => r.id)));
   const supabase = useRef(createClient());
+  const fetchGen = useRef(0);
+  const toggleInFlight = useRef(false);
   const [, setTick] = useState(0);
 
   // Update relative timestamps every 30s
@@ -80,11 +82,15 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
 
   // Fetch all requests (used on reconnect and visibility change)
   const fetchRequests = useCallback(async () => {
+    const gen = ++fetchGen.current;
     const { data } = await supabase.current
       .from("song_requests")
       .select("id, song_id, created_at, songs(id, title, artist)")
       .eq("gig_id", gig.id)
       .order("created_at", { ascending: false });
+
+    // Discard stale response if a newer fetch was started
+    if (gen !== fetchGen.current) return;
 
     if (data) {
       setRequests(data as SongRequestRow[]);
@@ -119,15 +125,18 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
             .single();
 
           if (song) {
-            setRequests((prev) => [
-              {
-                id: newReq.id,
-                song_id: newReq.song_id,
-                created_at: newReq.created_at,
-                songs: song,
-              },
-              ...prev,
-            ]);
+            setRequests((prev) => {
+              if (prev.some((r) => r.id === newReq.id)) return prev;
+              return [
+                {
+                  id: newReq.id,
+                  song_id: newReq.song_id,
+                  created_at: newReq.created_at,
+                  songs: song,
+                },
+                ...prev,
+              ];
+            });
           }
         }
       )
@@ -185,6 +194,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
 
   // Toggle requests open/closed (via API route — checks performer auth cookie)
   async function handleToggle() {
+    if (toggleInFlight.current) return;
+    toggleInFlight.current = true;
     setToggling(true);
     const newState = !requestsOpen;
 
@@ -202,6 +213,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
       // Silently fail — performer can retry
     }
     setToggling(false);
+    toggleInFlight.current = false;
   }
 
   // Dismiss a song — mark as played, remove from queue
