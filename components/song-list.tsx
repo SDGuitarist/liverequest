@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import type { Song, Gig } from "@/lib/supabase/types";
 import { SongCard, IDLE_STATE } from "./song-card";
 import { ConfirmationOverlay } from "./confirmation-overlay";
@@ -26,8 +26,9 @@ export function SongList({ songs, gig }: SongListProps) {
   const [overlaySong, setOverlaySong] = useState<Song | null>(null);
   const [requestCount, setRequestCount] = useState<number | null>(null);
 
-  // Pessimistic counter — reserves slots before async insert completes
-  const pendingCount = useRef(0);
+  const pendingCount = Object.values(requestStates).filter(
+    (s) => s.status === "sending"
+  ).length;
   const totalSent = Object.values(requestStates).filter(
     (s) => s.status === "sent"
   ).length;
@@ -43,16 +44,6 @@ export function SongList({ songs, gig }: SongListProps) {
 
   const handleStateChange = useCallback(
     (songId: string, state: RequestState) => {
-      if (state.status === "sending") {
-        pendingCount.current++;
-      }
-      if (
-        state.status === "sent" ||
-        state.status === "error" ||
-        state.status === "idle"
-      ) {
-        pendingCount.current = Math.max(0, pendingCount.current - 1);
-      }
       setRequestStates((prev) => ({ ...prev, [songId]: state }));
     },
     []
@@ -67,7 +58,7 @@ export function SongList({ songs, gig }: SongListProps) {
     setRequestCount(count);
   }, []);
 
-  const atLimit = totalSent + pendingCount.current >= REQUEST_LIMIT;
+  const atLimit = totalSent + pendingCount >= REQUEST_LIMIT;
 
   return (
     <>
