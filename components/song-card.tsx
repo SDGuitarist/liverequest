@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/session";
+import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { Song } from "@/lib/supabase/types";
 
 type RequestState =
@@ -70,6 +71,7 @@ export function SongCard({
         // Unique constraint violation = already requested = treat as success
         if (error.code === "23505") {
           onStateChange(song.id, { status: "sent" });
+          hapticSuccess();
           onSuccess(song);
           fetchCountInBackground(supabase);
         }
@@ -79,14 +81,17 @@ export function SongCard({
             status: "error",
             message: "Requests are closed",
           });
+          hapticError();
         } else {
           onStateChange(song.id, {
             status: "error",
             message: "Failed — tap to retry",
           });
+          hapticError();
         }
       } else {
         onStateChange(song.id, { status: "sent" });
+        hapticSuccess();
         onSuccess(song);
         fetchCountInBackground(supabase);
       }
@@ -95,6 +100,7 @@ export function SongCard({
         status: "error",
         message: "Failed — tap to retry",
       });
+      hapticError();
     } finally {
       isSubmitting.current = false;
     }

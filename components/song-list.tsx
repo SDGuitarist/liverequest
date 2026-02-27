@@ -123,7 +123,7 @@ export function SongList({ songs, gig }: SongListProps) {
             No songs found
           </p>
         ) : (
-          filteredSongs.map((song) => {
+          filteredSongs.map((song, i) => {
             const state = requestStates[song.id] ?? { status: "idle" };
             // If at limit and this song hasn't been sent yet, show as idle but won't submit
             const effectiveState =
@@ -132,15 +132,20 @@ export function SongList({ songs, gig }: SongListProps) {
                 : state;
 
             return (
-              <SongCard
+              <div
                 key={song.id}
-                song={song}
-                gigId={gig.id}
-                requestState={effectiveState}
-                onStateChange={handleStateChange}
-                onSuccess={handleSuccess}
-                onCountUpdate={handleCountUpdate}
-              />
+                className="stagger-item"
+                style={{ animationDelay: `${Math.min(i * 40, 600)}ms` }}
+              >
+                <SongCard
+                  song={song}
+                  gigId={gig.id}
+                  requestState={effectiveState}
+                  onStateChange={handleStateChange}
+                  onSuccess={handleSuccess}
+                  onCountUpdate={handleCountUpdate}
+                />
+              </div>
             );
           })
         )}

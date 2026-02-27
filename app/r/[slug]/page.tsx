@@ -64,15 +64,40 @@ export default async function AudiencePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="px-4 pt-6 pb-2">
-        <h1 className="font-display text-title font-bold text-text-primary">
-          LiveRequest
-        </h1>
-        <p className="mt-1 font-body text-caption text-text-secondary">
-          {gig.venue_name} &middot; Tap a song to request it
-        </p>
+    <div
+      className="min-h-screen"
+      style={{
+        background: `
+          radial-gradient(ellipse at 20% 0%, rgba(245, 158, 11, 0.06) 0%, transparent 50%),
+          radial-gradient(ellipse at 80% 100%, rgba(245, 158, 11, 0.05) 0%, transparent 50%),
+          radial-gradient(ellipse at 50% 50%, rgba(245, 158, 11, 0.03) 0%, transparent 60%),
+          #0D0D0F
+        `,
+      }}
+    >
+      {/* Header with amber glow */}
+      <div className="relative px-5 pt-8 pb-4 overflow-hidden">
+        <div
+          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[300px] h-[200px] pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, rgba(245, 158, 11, 0.08) 0%, transparent 70%)",
+          }}
+        />
+        <div className="relative">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            <span className="font-body text-label uppercase tracking-widest text-accent">
+              Live Now
+            </span>
+          </div>
+          <h1 className="mt-2 font-display text-title font-bold text-text-primary tracking-tight">
+            LiveRequest
+          </h1>
+          <p className="mt-1 font-body text-caption text-text-secondary">
+            {gig.venue_name} &middot; Tap a song to request it
+          </p>
+        </div>
       </div>
 
       <SongList songs={songs} gig={gig} />

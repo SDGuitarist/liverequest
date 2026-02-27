@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
+import { hapticDismiss } from "@/lib/haptics";
 import type { Gig } from "@/lib/supabase/types";
 
 interface SongRequestRow {
@@ -205,6 +206,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
 
   // Dismiss a song — mark as played, remove from queue
   async function handleDismiss(songId: string) {
+    hapticDismiss();
     // Optimistic: remove from local state immediately
     setRequests((prev) => prev.filter((r) => r.song_id !== songId));
 
@@ -346,7 +348,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
           grouped.map((song, i) => (
             <div
               key={song.songId}
-              className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-[border-color] duration-200"
+              className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-[border-color] duration-200 animate-[slide-in-new_0.4s_ease-out_backwards]"
               style={{
                 boxShadow: song.count >= 3
                   ? '0 0 24px -8px rgba(245, 158, 11, 0.15)'
@@ -356,9 +358,12 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
               {/* Left accent bar — gradient fade */}
               <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-accent/0 via-accent/40 to-accent/0" />
 
-              {/* Count badge */}
+              {/* Count badge — key forces re-mount on count change for bump animation */}
               <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center">
-                <span className="font-display font-bold text-xl text-accent">
+                <span
+                  key={song.count}
+                  className="font-display font-bold text-xl text-accent animate-[count-bump_0.3s_ease-out]"
+                >
                   {song.count}
                 </span>
               </div>
