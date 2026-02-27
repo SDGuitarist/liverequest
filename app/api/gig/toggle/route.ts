@@ -10,7 +10,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { gigId, requestsOpen } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { gigId, requestsOpen } = body as Record<string, unknown>;
+  if (typeof gigId !== "string" || typeof requestsOpen !== "boolean") {
+    return NextResponse.json({ error: "Missing gigId or requestsOpen" }, { status: 400 });
+  }
 
   const supabase = createServiceClient();
   const { error } = await supabase

@@ -2,7 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 export async function POST(request: NextRequest) {
-  const { password } = await request.json();
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { password } = body as Record<string, unknown>;
+  if (typeof password !== "string") {
+    return NextResponse.json({ error: "Missing password" }, { status: 400 });
+  }
 
   const expected = process.env.PERFORMER_PASSWORD;
   if (!expected) {
