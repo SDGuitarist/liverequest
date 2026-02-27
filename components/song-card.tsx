@@ -88,63 +88,83 @@ export function SongCard({
     <button
       onClick={handleRequest}
       disabled={isSending || isSent}
-      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 min-h-[60px] text-left transition-all active:scale-[0.98] ${
+      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[64px] text-left transition-all duration-200 active:scale-[0.98] border ${
         isSent
-          ? "bg-accent-surface"
+          ? "bg-accent-surface border-accent/20"
           : isError
-            ? "bg-surface-raised"
-            : "bg-surface-raised hover:bg-surface-hover"
+            ? "bg-surface-raised border-danger/20"
+            : "bg-surface-raised border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover"
       }`}
     >
+      {/* Left accent bar */}
+      <div
+        className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full transition-all duration-200 ${
+          isSent
+            ? "bg-accent"
+            : "bg-transparent group-hover:bg-accent/40"
+        }`}
+      />
+
       {/* Song info */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pl-1">
         <p className="font-display text-song font-semibold text-text-primary truncate">
           {song.title}
         </p>
         {song.artist && (
-          <p className="font-body text-caption text-text-secondary truncate">
+          <p className="font-body text-caption text-text-secondary truncate mt-0.5">
             {song.artist}
+          </p>
+        )}
+        {isError && (
+          <p className="font-body text-caption text-danger mt-0.5">
+            {requestState.message}
           </p>
         )}
       </div>
 
       {/* Action indicator */}
-      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
+      <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors">
         {isSending && (
           <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         )}
         {isSent && (
-          <svg
-            className="w-5 h-5 text-accent"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+            <svg
+              className="w-4 h-4 text-accent"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={3}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
         )}
         {isError && (
-          <span className="text-danger text-caption font-semibold">!</span>
+          <div className="w-8 h-8 rounded-full bg-danger/20 flex items-center justify-center">
+            <span className="text-danger text-body font-bold">!</span>
+          </div>
         )}
         {requestState.status === "idle" && (
-          <svg
-            className="w-5 h-5 text-accent"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+          <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+            <svg
+              className="w-4 h-4 text-accent"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+          </div>
         )}
       </div>
     </button>

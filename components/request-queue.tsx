@@ -225,40 +225,59 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
 
   return (
     <div className="min-h-screen pb-8">
-      {/* Header */}
-      <div className="px-4 pt-6 pb-4 flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-title font-bold text-text-primary">
-            LiveRequest
-          </h1>
-          <p className="mt-1 font-body text-caption text-text-secondary">
-            {gig.venue_name}
-          </p>
-        </div>
+      {/* Header with amber glow */}
+      <div className="relative px-5 pt-8 pb-5 overflow-hidden">
+        <div
+          className="absolute -top-20 left-1/2 -translate-x-1/2 w-[300px] h-[200px] pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, rgba(245, 158, 11, 0.08) 0%, transparent 70%)",
+          }}
+        />
+        <div className="relative flex items-start justify-between">
+          <div>
+            <h1 className="font-display text-title font-bold text-text-primary tracking-tight">
+              LiveRequest
+            </h1>
+            <p className="mt-1 font-body text-caption text-text-secondary">
+              {gig.venue_name}
+            </p>
+          </div>
 
-        {/* Connection indicator */}
-        <div className="flex items-center gap-2 mt-1">
+          {/* Connection indicator */}
           <div
-            className={`w-2.5 h-2.5 rounded-full ${
-              connected ? "bg-success" : "bg-danger animate-pulse"
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+              connected
+                ? "bg-success/10 border-success/20"
+                : "bg-danger/10 border-danger/20"
             }`}
-          />
-          <span className="font-body text-caption text-text-muted">
-            {connected ? "Live" : "Reconnecting..."}
-          </span>
+          >
+            <div
+              className={`w-2 h-2 rounded-full ${
+                connected ? "bg-success" : "bg-danger animate-pulse"
+              }`}
+            />
+            <span
+              className={`font-body text-label uppercase tracking-wider ${
+                connected ? "text-success" : "text-danger"
+              }`}
+            >
+              {connected ? "Live" : "Offline"}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="px-4 space-y-3 mb-6">
+      <div className="px-5 space-y-3 mb-6">
         {/* Toggle requests */}
         <button
           onClick={handleToggle}
           disabled={toggling}
-          className={`w-full py-3 rounded-xl font-display font-bold text-body transition-colors disabled:opacity-50 ${
+          className={`w-full py-3.5 rounded-xl font-display font-bold text-body transition-all disabled:opacity-50 ${
             requestsOpen
-              ? "bg-danger/20 text-danger border border-danger/30 hover:bg-danger/30"
-              : "bg-accent text-surface hover:bg-accent-bright"
+              ? "bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20"
+              : "bg-accent text-surface hover:bg-accent-bright shadow-lg shadow-accent/20"
           }`}
         >
           {toggling
@@ -271,14 +290,14 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         {/* QR Code toggle */}
         <button
           onClick={() => setShowQR(!showQR)}
-          className="w-full py-3 rounded-xl font-display font-bold text-body text-text-primary bg-surface-raised border border-surface-border hover:bg-surface-hover transition-colors"
+          className="w-full py-3.5 rounded-xl font-display font-bold text-body text-text-primary bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover transition-all"
         >
           {showQR ? "Hide QR Code" : "Show QR Code"}
         </button>
 
         {/* QR Code display */}
         {showQR && (
-          <div className="flex flex-col items-center gap-3 py-4 rounded-xl bg-white">
+          <div className="flex flex-col items-center gap-3 py-6 rounded-xl bg-white shadow-xl shadow-black/20">
             <QRCodeSVG
               value={audienceUrl}
               size={200}
@@ -286,7 +305,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
               bgColor="#ffffff"
               fgColor="#0D0D0F"
             />
-            <p className="font-body text-caption text-zinc-600 px-4 text-center break-all">
+            <p className="font-body text-caption text-zinc-500 px-6 text-center break-all">
               {audienceUrl}
             </p>
           </div>
@@ -294,15 +313,27 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
       </div>
 
       {/* Stats bar */}
-      <div className="px-4 mb-4">
-        <p className="font-body text-caption text-text-muted">
-          {totalRequests} request{totalRequests !== 1 ? "s" : ""} &middot;{" "}
-          {grouped.length} song{grouped.length !== 1 ? "s" : ""}
-        </p>
+      <div className="px-5 mb-3 flex items-center gap-3">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20">
+          <span className="font-display font-bold text-caption text-accent">
+            {totalRequests}
+          </span>
+          <span className="font-body text-caption text-text-secondary">
+            request{totalRequests !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-raised border border-white/[0.06]">
+          <span className="font-display font-bold text-caption text-text-primary">
+            {grouped.length}
+          </span>
+          <span className="font-body text-caption text-text-secondary">
+            song{grouped.length !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       {/* Request queue */}
-      <div className="px-4 flex flex-col gap-2">
+      <div className="px-5 flex flex-col gap-2">
         {grouped.length === 0 ? (
           <div className="py-16 text-center">
             <p className="font-body text-body text-text-muted">
@@ -312,13 +343,19 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
             </p>
           </div>
         ) : (
-          grouped.map((song) => (
+          grouped.map((song, i) => (
             <div
               key={song.songId}
-              className="flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-surface-border"
+              className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-all"
+              style={{
+                animationDelay: `${i * 0.05}s`,
+              }}
             >
-              {/* Amber bar + count */}
-              <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center">
+              {/* Left accent bar */}
+              <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-accent" />
+
+              {/* Count badge */}
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center">
                 <span className="font-display font-bold text-xl text-accent">
                   {song.count}
                 </span>
@@ -330,21 +367,24 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                   {song.title}
                 </p>
                 {song.artist && (
-                  <p className="font-body text-caption text-text-secondary truncate">
+                  <p className="font-body text-caption text-text-secondary truncate mt-0.5">
                     {song.artist}
                   </p>
                 )}
               </div>
 
               {/* Time + Done button */}
-              <div className="flex-shrink-0 flex flex-col items-end gap-1">
+              <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                 <span className="font-body text-caption text-text-muted">
                   {timeAgo(song.latestRequest)}
                 </span>
                 <button
                   onClick={() => handleDismiss(song.songId)}
-                  className="px-3 py-1 rounded-lg font-body text-caption text-success bg-success/10 border border-success/20 hover:bg-success/20 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-body text-caption text-success bg-success/10 border border-success/20 hover:bg-success/20 transition-colors"
                 >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
                   Done
                 </button>
               </div>
