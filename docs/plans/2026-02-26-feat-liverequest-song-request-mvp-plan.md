@@ -573,18 +573,18 @@ The security review flagged that **anyone with the anon key can call the Supabas
 **Goal: Deployed skeleton with database, accessible via URL.**
 
 Tasks:
-- [ ] `npx create-next-app@latest liverequest` (TypeScript, Tailwind, App Router)
-- [ ] Configure Tailwind with Neon Lounge design tokens (colors, fonts, type scale, keyframes)
-- [ ] Add Google Fonts: Outfit (500, 700) + Sora (400, 600)
+- [x] `npx create-next-app@latest liverequest` (TypeScript, Tailwind, App Router)
+- [x] Configure Tailwind with Neon Lounge design tokens (colors, fonts, type scale, keyframes)
+- [x] Add Google Fonts: Outfit (500, 700) + Sora (400, 600)
 - [ ] Create Supabase project, run full schema SQL (tables + constraints + indexes + RLS + realtime)
 - [ ] Generate TypeScript types: `npx supabase gen types typescript --project-id XXX > lib/supabase/database.types.ts`
-- [ ] Set up `lib/supabase/client.ts` and `lib/supabase/server.ts` (typed with `Database` generic)
-- [ ] Set up `lib/supabase/types.ts` (convenience aliases: `Song`, `Gig`, `SongRequest`)
-- [ ] Create `.env.local` with Supabase keys + `PERFORMER_PASSWORD`
+- [x] Set up `lib/supabase/client.ts` and `lib/supabase/server.ts` (typed with `Database` generic)
+- [x] Set up `lib/supabase/types.ts` (convenience aliases: `Song`, `Gig`, `SongRequest`)
+- [x] Create `.env.local` with Supabase keys + `PERFORMER_PASSWORD`
 - [ ] Enable Supabase connection pooler (Supavisor, transaction mode)
-- [ ] Push to GitHub, connect to Vercel via Supabase marketplace integration, deploy
+- [x] Push to GitHub, connect to Vercel via Supabase marketplace integration, deploy
 - [ ] Verify: visiting the Vercel URL shows the Next.js default page
-- [ ] Seed database: create a test gig, add 20-30 test songs via Supabase dashboard
+- [x] Seed database: create a test gig, add 20-30 test songs via Supabase dashboard
 
 **Success criteria:** App deployed on Vercel. Supabase tables + RLS + indexes exist. Typed Supabase clients work. Test data seeded.
 

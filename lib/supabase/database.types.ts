@@ -38,6 +38,7 @@ export interface Database {
           is_active?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       gigs: {
         Row: {
@@ -64,6 +65,7 @@ export interface Database {
           requests_open?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       song_requests: {
         Row: {
@@ -87,6 +89,22 @@ export interface Database {
           session_id?: string
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "song_requests_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "song_requests_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -96,6 +114,9 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
       [_ in never]: never
     }
   }
