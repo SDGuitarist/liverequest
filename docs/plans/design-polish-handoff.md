@@ -1,7 +1,7 @@
 ---
-title: "Design Polish Handoff — Phases B, C, D"
+title: "Design Polish Handoff — Phases A, B, C, D"
 date: 2026-02-27
-status: active
+status: complete
 ---
 
 # Design Polish Handoff
@@ -69,23 +69,18 @@ What was done:
 
 ---
 
-## Finally: Phase D — Polish
+## Completed: Phase D — Polish
 
-**Recs:** #3 (stagger + layout animations) + #10 (haptics) + bonus
-**Adds `motion` package. Final layer of premium feel.**
+**Commits:** 420f8f6 (squash-merged as fe102c0)
+**Recs:** #3 (stagger animations) + #10 (haptics) + bonus quick wins
 
-### Rec #3 — Staggered List Entry + Layout Animations
-- **File:** `components/song-list.tsx`
-- CSS-only stagger: `@keyframes slide-in` with `animationDelay: Math.min(i * 40, 600)ms`
-- Optional: `npm install motion` for layout animations on search filter (AnimatePresence + layout prop)
+What was done:
+- Rec #3: CSS-only staggered slide-in animation on song list — `@keyframes slide-in` with 40ms delay per card capped at 600ms. Did not add `motion` package (CSS-only covers the need without the 45KB dependency)
+- Rec #10: Progressive-enhancement haptic feedback via `lib/haptics.ts` — `hapticSuccess` (50ms), `hapticError` ([50,100,50]), `hapticDismiss` (80ms). Called in `song-card.tsx` after sent/error states and in `request-queue.tsx` after dismiss
+- Bonus: Count badge bump animation (`key={song.count}` re-mount trick + `count-bump` keyframe), `slide-in-new` glow-fade entry for performer queue cards, layered amber mesh gradient (3 radial-gradients at 3–6% opacity) on audience page background
 
-### Rec #10 — Haptic Feedback
-- **New file:** `lib/haptics.ts`
-- **Files:** `components/song-card.tsx`, `components/request-queue.tsx`
-- Success: `navigator.vibrate(50)`, Error: `navigator.vibrate([50, 100, 50])`, Dismiss: `navigator.vibrate(80)`
-- Progressive enhancement — silently ignored on iOS
-
-### Bonus Quick Wins
-- Count badge bump animation on new request (`key={song.count}` + `count-bump` keyframe)
-- New request slide-in with glow in performer queue
-- Mesh gradient on page background (layered radial-gradient with amber at 5-7% opacity)
+**Lessons learned:**
+- `key={value}` on a child element forces React re-mount — useful for triggering one-shot CSS animations on data change without state management
+- `navigator.vibrate` is a no-op on iOS Safari — progressive enhancement means zero error handling needed
+- Mesh gradients: 3 overlapping radial-gradients at 3–6% opacity create depth without visible edges; going above 7% makes the amber muddy
+- CSS-only stagger (`animationDelay` + `backwards` fill mode) is sufficient for list entry; `motion` package only needed if layout reflow on filter is required
