@@ -85,7 +85,7 @@ export function SongList({ songs, gig }: SongListProps) {
             placeholder="Search songs or artists..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-white/[0.04] text-text-primary font-body text-body placeholder:text-text-muted border border-white/[0.06] focus:border-accent/30 focus:bg-white/[0.06] focus:shadow-[0_0_0_3px_rgba(245,158,11,0.06)] focus:outline-none transition-all"
+            className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-white/[0.04] text-text-primary font-body text-body placeholder:text-text-muted border border-white/[0.06] focus:border-accent/30 focus:bg-white/[0.06] focus:shadow-[0_0_0_3px_rgba(245,158,11,0.06)] focus:outline-none transition-[border-color,background-color,box-shadow] duration-200"
           />
         </div>
         {atLimit ? (

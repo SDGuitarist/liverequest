@@ -88,7 +88,7 @@ export function SongCard({
     <button
       onClick={handleRequest}
       disabled={isSending || isSent}
-      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-all duration-200 active:scale-[0.98] border ${
+      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.98] border ${
         isSent
           ? "bg-accent-surface border-accent/20 shadow-[0_0_24px_-8px_rgba(245,158,11,0.15)]"
           : isError
@@ -98,7 +98,7 @@ export function SongCard({
     >
       {/* Left accent bar — gradient fade */}
       <div
-        className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full transition-all duration-300 ${
+        className={`absolute left-0 top-3 bottom-3 w-[3px] rounded-full transition-opacity duration-300 ${
           isSent
             ? "bg-gradient-to-b from-accent/0 via-accent to-accent/0"
             : "opacity-0 group-hover:opacity-100 bg-gradient-to-b from-accent/0 via-accent/40 to-accent/0"

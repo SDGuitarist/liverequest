@@ -274,7 +274,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         <button
           onClick={handleToggle}
           disabled={toggling}
-          className={`w-full py-3.5 rounded-xl font-display font-bold text-body transition-all disabled:opacity-50 ${
+          className={`w-full py-3.5 rounded-xl font-display font-bold text-body transition-colors disabled:opacity-50 ${
             requestsOpen
               ? "bg-danger/10 text-danger border border-danger/20 hover:bg-danger/20"
               : "bg-accent text-surface hover:bg-accent-bright shadow-lg shadow-accent/20"
@@ -290,7 +290,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         {/* QR Code toggle */}
         <button
           onClick={() => setShowQR(!showQR)}
-          className="w-full py-3.5 rounded-xl font-display font-bold text-body text-text-primary bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover transition-all"
+          className="w-full py-3.5 rounded-xl font-display font-bold text-body text-text-primary bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] hover:bg-surface-hover transition-colors duration-200"
         >
           {showQR ? "Hide QR Code" : "Show QR Code"}
         </button>
@@ -346,9 +346,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
           grouped.map((song, i) => (
             <div
               key={song.songId}
-              className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-all"
+              className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-[border-color] duration-200"
               style={{
-                animationDelay: `${i * 0.05}s`,
                 boxShadow: song.count >= 3
                   ? '0 0 24px -8px rgba(245, 158, 11, 0.15)'
                   : 'none',
