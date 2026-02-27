@@ -29,31 +29,27 @@ What was done:
 
 ---
 
-## Next: Phase B — Delight
+## Completed: Phase B — Delight
 
-**Recs:** #9 (state animations) + #6 (gradient button) + Quick wins (live dot, tap feedback)
-**All CSS-only. No new dependencies.**
+**Commits:** ba974a2, 06c984a, 8df6b80, 479884a, 3711857
+**Recs:** #9 (state animations) + #6 (gradient button) + Quick wins (live dot, reduced motion)
 
-### Rec #9 — Morphing Checkmark + Error Shake + Success Glow
-- **Files:** `components/song-card.tsx`, `app/globals.css`
-- Add keyframes: `draw-check`, `circle-fill`, `shake`, `success-glow`
-- Sent checkmark: circle pops with overshoot bounce, then checkmark draws via SVG stroke-dashoffset animation
-- Error state: shake animation (4px amplitude, 400ms)
-- Success glow: brief amber box-shadow pulse (800ms) when card transitions to sent
+What was done:
+- Rec #9: SVG stroke-draw checkmark with circle-pop overshoot, error shake, success-glow pulse
+- Rec #6: Gradient Share button (from-accent to-accent-bright) with amber glow shadow
+- Quick wins: live-glow keyframe on connection dot, reduced-motion safety net
+- Review fixes: removed duplicate tap feedback (brightness-95), simplified live-glow, fixed Done button transition
 
-### Rec #6 — Gradient Share Button + Glow Shadow CTA
-- **File:** `components/confirmation-overlay.tsx`
-- Share button: `bg-gradient-to-r from-accent to-accent-bright` + `shadow-[0_4px_16px_rgba(245,158,11,0.3)]`
-- Done button already glassmorphic from Phase A — just verify it looks good next to gradient Share
-
-### Quick Wins
-- **Live dot glow:** Replace `animate-pulse` on connection indicator with `live-glow` keyframe (box-shadow pulse) in `request-queue.tsx`
-- **Tap feedback:** Add `active:brightness-95` to song cards in `song-card.tsx`
-- **Reduced motion:** Add `@media (prefers-reduced-motion: reduce)` safety net in `globals.css`
+**Lessons learned (carry forward):**
+- Inline `style` is correct for single-use SVG stroke animation props (no Tailwind utilities)
+- One tap feedback signal is enough — `active:scale-[0.98]` is the standard, don't stack brightness
+- `transition` property must include `transform` if using `active:scale-[0.98]`
+- Approximate stroke-dasharray values (20-30) work fine for simple checkmark SVGs
+- Infinite animations only on single elements, never on list items
 
 ---
 
-## Then: Phase C — Shareability
+## Next: Phase C — Shareability
 
 **Recs:** #2 (dynamic mesh gradients) + #7 (musical particles) + #8 (badge/watermark)
 **The confirmation overlay becomes a shareable artifact.**
