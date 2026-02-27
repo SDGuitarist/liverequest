@@ -31,6 +31,8 @@ function getSongPalette(title: string, artist: string | null): SongPalette {
   };
 }
 
+const NOTES = ["♪", "♫", "♬", "♩"];
+
 interface ConfirmationOverlayProps {
   song: Song;
   venueName: string;
@@ -127,22 +129,56 @@ export function ConfirmationOverlay({
         />
       </div>
 
+      {/* Floating musical notes */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {NOTES.flatMap((note, ni) =>
+          [0, 1].map((ri) => {
+            const i = ni * 2 + ri;
+            return (
+              <span
+                key={i}
+                className="absolute animate-[float-up_ease-out_forwards] text-amber-400/30"
+                style={{
+                  left: `${(i / 8) * 100}%`,
+                  bottom: "-20px",
+                  animationDelay: `${i * 0.15}s`,
+                  animationDuration: `${3 + (i % 3)}s`,
+                  fontSize: `${0.7 + (i % 3) * 0.4}rem`,
+                }}
+              >
+                {note}
+              </span>
+            );
+          })
+        )}
+      </div>
+
       <div className="relative flex flex-col items-center px-8 text-center max-w-sm">
-        {/* Checkmark */}
-        <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center animate-scale-in">
-          <svg
-            className="w-8 h-8 text-accent"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M5 13l4 4L19 7"
+        {/* Checkmark + sonic rings */}
+        <div className="relative flex items-center justify-center">
+          {/* Sonic rings */}
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="absolute w-16 h-16 rounded-full border border-amber-400/20 animate-[ring-pulse_1.5s_ease-out_forwards]"
+              style={{ animationDelay: `${i * 0.4}s` }}
             />
-          </svg>
+          ))}
+          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center animate-scale-in">
+            <svg
+              className="w-8 h-8 text-accent"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
         </div>
 
         {/* Label */}

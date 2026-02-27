@@ -99,6 +99,20 @@ body {
   50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.6); }
 }
 
+/* Phase C — Musical note float */
+@keyframes float-up {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.5; }
+  80% { opacity: 0.2; }
+  100% { transform: translateY(-100vh) rotate(30deg); opacity: 0; }
+}
+
+/* Phase C — Sonic ring expansion */
+@keyframes ring-pulse {
+  0% { transform: scale(0.5); opacity: 0.4; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
 /* Reduced motion — global safety net */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
