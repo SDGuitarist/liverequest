@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/session";
 import type { Song } from "@/lib/supabase/types";
@@ -30,6 +30,9 @@ export function SongCard({
 }: SongCardProps) {
   // useRef gate for double-tap prevention (synchronous, unlike useState)
   const isSubmitting = useRef(false);
+  // Guard against calling setState after unmount
+  const isMounted = useRef(true);
+  useEffect(() => () => { isMounted.current = false; }, []);
 
   // Fire-and-forget: fetch tonight's request count in background
   function fetchCountInBackground(supabase: ReturnType<typeof createClient>) {
@@ -38,7 +41,7 @@ export function SongCard({
       .select("*", { count: "exact", head: true })
       .eq("gig_id", gigId)
       .then(({ count, error }) => {
-        if (!error && count !== null) {
+        if (!error && count !== null && isMounted.current) {
           onCountUpdate(count);
         }
       });

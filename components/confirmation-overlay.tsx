@@ -57,6 +57,15 @@ export function ConfirmationOverlay({
   const palette = getSongPalette(song.title, song.artist);
   const timeLabel = getTimeLabel();
 
+  // Dismiss on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onDismiss();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onDismiss]);
+
   // Fire confetti on mount (dynamic import keeps it out of main bundle)
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia(
@@ -106,7 +115,12 @@ export function ConfirmationOverlay({
   }, [song, venueName]);
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-surface/95 backdrop-blur-sm">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Request sent: ${song.title}`}
+      className="fixed inset-0 z-40 flex items-center justify-center bg-surface/95 backdrop-blur-sm"
+    >
       {/* Dynamic mesh gradient — unique per song */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Orb 1: Song-primary color, large */}
