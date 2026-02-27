@@ -33,6 +33,14 @@ function getSongPalette(title: string, artist: string | null): SongPalette {
 
 const NOTES = ["♪", "♫", "♬", "♩"];
 
+function getTimeLabel(): string | null {
+  const hour = new Date().getHours();
+  if (hour >= 17 && hour < 20) return "GOLDEN HOUR";
+  if (hour >= 20 && hour < 23) return "PRIME TIME";
+  if (hour >= 23 || hour < 2) return "LATE NIGHT";
+  return null;
+}
+
 interface ConfirmationOverlayProps {
   song: Song;
   venueName: string;
@@ -47,6 +55,7 @@ export function ConfirmationOverlay({
   onDismiss,
 }: ConfirmationOverlayProps) {
   const palette = getSongPalette(song.title, song.artist);
+  const timeLabel = getTimeLabel();
 
   // Fire confetti on mount (dynamic import keeps it out of main bundle)
   useEffect(() => {
@@ -217,10 +226,38 @@ export function ConfirmationOverlay({
           Requested at {venueName}
         </p>
 
+        {/* Request badge + time label */}
+        <div
+          className="mt-5 flex flex-col items-center gap-2 animate-fade-up"
+          style={{ animationDelay: "0.4s", animationFillMode: "backwards" }}
+        >
+          {timeLabel && (
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-[live-glow_2s_ease-in-out_infinite]" />
+              <span className="text-[10px] tracking-[0.3em] uppercase text-white/40">
+                {timeLabel}
+              </span>
+            </div>
+          )}
+          {requestCount !== null && (
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.08] border border-white/[0.12]">
+              <span className="text-[10px] tracking-[0.2em] uppercase text-white/40">
+                Request
+              </span>
+              <span className="text-sm font-bold text-accent font-display">
+                #{requestCount}
+              </span>
+              <span className="text-[10px] tracking-[0.2em] uppercase text-white/40">
+                tonight
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Action buttons */}
         <div
-          className="mt-8 flex flex-col gap-3 w-full animate-fade-up"
-          style={{ animationDelay: "0.45s", animationFillMode: "backwards" }}
+          className="mt-6 flex flex-col gap-3 w-full animate-fade-up"
+          style={{ animationDelay: "0.5s", animationFillMode: "backwards" }}
         >
           <button
             onClick={handleShare}
@@ -235,6 +272,13 @@ export function ConfirmationOverlay({
             Done
           </button>
         </div>
+      </div>
+
+      {/* Branded watermark */}
+      <div className="absolute bottom-8 left-0 right-0 flex justify-center pointer-events-none">
+        <span className="text-[11px] font-display font-bold tracking-[0.15em] text-white/30">
+          LIVEREQUEST
+        </span>
       </div>
     </div>
   );
