@@ -138,7 +138,7 @@ export function ConfirmationOverlay({
           </button>
           <button
             onClick={onDismiss}
-            className="w-full py-3 px-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-text-secondary font-body text-body transition-colors hover:bg-white/[0.1] hover:text-text-primary active:scale-[0.98]"
+            className="w-full py-3 px-6 rounded-full bg-white/[0.06] border border-white/[0.08] text-text-secondary font-body text-body transition-[color,background-color,transform] duration-200 hover:bg-white/[0.1] hover:text-text-primary active:scale-[0.98]"
           >
             Done
           </button>

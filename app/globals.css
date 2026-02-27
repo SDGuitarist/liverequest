@@ -95,8 +95,8 @@ body {
 }
 
 @keyframes live-glow {
-  0%, 100% { box-shadow: 0 0 4px 0 rgba(245, 158, 11, 0.4); opacity: 1; }
-  50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.6); opacity: 0.8; }
+  0%, 100% { box-shadow: 0 0 4px 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 12px 4px rgba(245, 158, 11, 0.6); }
 }
 
 /* Reduced motion — global safety net */

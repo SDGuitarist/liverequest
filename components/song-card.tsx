@@ -88,7 +88,7 @@ export function SongCard({
     <button
       onClick={handleRequest}
       disabled={isSending || isSent}
-      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.98] active:brightness-95 border ${
+      className={`group relative flex w-full items-center gap-3 rounded-xl px-4 py-3.5 min-h-[72px] text-left transition-[background-color,border-color,box-shadow,transform] duration-200 active:scale-[0.98] border ${
         isSent
           ? "bg-accent-surface border-accent/20 shadow-[0_0_24px_-8px_rgba(245,158,11,0.15)] animate-[success-glow_0.8s_ease-out]"
           : isError
