@@ -31,6 +31,7 @@ export const SongCard = memo(function SongCard({
   onSuccess,
   onCountUpdate,
 }: SongCardProps) {
+  const supabase = useRef(createClient());
   // useRef gate for double-tap prevention (synchronous, unlike useState)
   const isSubmitting = useRef(false);
   // Guard against calling setState after unmount
@@ -38,8 +39,8 @@ export const SongCard = memo(function SongCard({
   useEffect(() => () => { isMounted.current = false; }, []);
 
   // Fire-and-forget: fetch tonight's request count in background
-  function fetchCountInBackground(supabase: ReturnType<typeof createClient>) {
-    supabase
+  function fetchCountInBackground() {
+    supabase.current
       .from("song_requests")
       .select("*", { count: "exact", head: true })
       .eq("gig_id", gigId)
@@ -60,10 +61,9 @@ export const SongCard = memo(function SongCard({
     onStateChange(song.id, { status: "sending" });
 
     try {
-      const supabase = createClient();
       const sessionId = getSessionId();
 
-      const { error } = await supabase.from("song_requests").insert({
+      const { error } = await supabase.current.from("song_requests").insert({
         gig_id: gigId,
         song_id: song.id,
         session_id: sessionId,
@@ -75,7 +75,7 @@ export const SongCard = memo(function SongCard({
           onStateChange(song.id, { status: "sent" });
           hapticSuccess();
           onSuccess(song);
-          fetchCountInBackground(supabase);
+          fetchCountInBackground();
         }
         // RLS rejection (gig closed, limit reached, etc.)
         else if (error.code === "42501") {
@@ -95,7 +95,7 @@ export const SongCard = memo(function SongCard({
         onStateChange(song.id, { status: "sent" });
         hapticSuccess();
         onSuccess(song);
-        fetchCountInBackground(supabase);
+        fetchCountInBackground();
       }
     } catch {
       onStateChange(song.id, {
