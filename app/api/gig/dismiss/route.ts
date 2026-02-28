@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
     .eq("song_id", songId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Supabase error:", error);
+    return NextResponse.json({ error: "Operation failed" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
