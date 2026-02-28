@@ -5,12 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/session";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import type { Song } from "@/lib/supabase/types";
-
-type RequestState =
-  | { status: "idle" }
-  | { status: "sending" }
-  | { status: "sent" }
-  | { status: "error"; message: string };
+import type { RequestState } from "@/lib/types";
 
 interface SongCardProps {
   song: Song;

@@ -2,14 +2,9 @@
 
 import { useState, useMemo, useCallback } from "react";
 import type { Song, Gig } from "@/lib/supabase/types";
+import type { RequestState } from "@/lib/types";
 import { SongCard, IDLE_STATE } from "./song-card";
 import { ConfirmationOverlay } from "./confirmation-overlay";
-
-type RequestState =
-  | { status: "idle" }
-  | { status: "sending" }
-  | { status: "sent" }
-  | { status: "error"; message: string };
 
 interface SongListProps {
   songs: Song[];
