@@ -33,6 +33,9 @@ create table song_requests (
   song_id uuid not null references songs(id) on delete restrict,
   session_id text not null,
   created_at timestamptz not null default now(),
+  played_at timestamptz default null,
+  -- SYNC: vibe values also defined in lib/supabase/types.ts (VIBE_VALUES) and RLS policy below
+  vibe text default null constraint valid_vibe check (vibe in ('fire', 'more_energy', 'softer')),
   unique(gig_id, song_id, session_id)
 );
 
@@ -112,9 +115,21 @@ create policy "insert_requests_validated" on song_requests
     and count_session_requests(gig_id, session_id) < 5
   );
 
+-- Column-level privilege: anon can ONLY update vibe, nothing else.
+-- WARNING: REVOKE removes ALL table-level UPDATE privileges for anon.
+-- Any future columns that anon needs to UPDATE will require explicit GRANT statements.
+revoke update on song_requests from anon;
+grant update (vibe) on song_requests to anon;
+
+-- Anon can set vibe once per request (vibe IS NULL prevents re-setting)
+create policy "Anon can set vibe on requests" on song_requests
+  for update to anon
+  using (vibe is null)
+  with check (vibe in ('fire', 'more_energy', 'softer'));
+
 -- Performer dismiss & toggle: handled via service role key in API routes.
--- No anon DELETE or UPDATE policies needed — the API route cookie check
--- is the sole auth gate, and the service role key bypasses RLS.
+-- No anon DELETE or UPDATE policies needed for played_at — the API route
+-- cookie check is the sole auth gate, and the service role key bypasses RLS.
 
 -- ============================================
 -- REALTIME
