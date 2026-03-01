@@ -42,5 +42,6 @@ export default async function PerformerDashboard() {
     .eq("gig_id", gig.id)
     .order("created_at", { ascending: false });
 
-  return <RequestQueue gig={gig} initialRequests={requests ?? []} />;
+  // DB CHECK constraint guarantees vibe is a valid Vibe value — safe to narrow
+  return <RequestQueue gig={gig} initialRequests={(requests ?? []) as Parameters<typeof RequestQueue>[0]["initialRequests"]} />;
 }

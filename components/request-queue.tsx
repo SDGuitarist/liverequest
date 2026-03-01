@@ -4,15 +4,14 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { hapticDismiss } from "@/lib/haptics";
-import type { Gig, SongRequest } from "@/lib/supabase/types";
-import { VIBE_EMOJI } from "@/lib/supabase/types";
+import { VIBE_EMOJI, type Gig, type SongRequest, type Vibe } from "@/lib/supabase/types";
 
 interface SongRequestRow {
   id: string;
   song_id: string;
   created_at: string;
   played_at: string | null;
-  vibe: string | null;
+  vibe: Vibe | null;
   songs: { id: string; title: string; artist: string | null } | null;
 }
 
@@ -22,7 +21,7 @@ interface GroupedSong {
   artist: string | null;
   count: number;
   latestRequest: string;
-  vibes: string[];
+  vibes: Vibe[];
 }
 
 interface RequestQueueProps {
@@ -159,11 +158,16 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         },
         (payload) => {
           const updated = payload.new as SongRequest;
-          setRequests((prev) =>
-            prev.map((r) =>
-              r.id === updated.id ? { ...r, vibe: updated.vibe ?? null } : r
-            )
-          );
+          setRequests((prev) => {
+            const idx = prev.findIndex((r) => r.id === updated.id);
+            if (idx === -1) return prev;
+            const cur = prev[idx];
+            // Skip if nothing we care about changed
+            if (cur.vibe === (updated.vibe ?? null) && cur.played_at === (updated.played_at ?? null)) return prev;
+            const next = [...prev];
+            next[idx] = { ...cur, vibe: updated.vibe ?? null, played_at: updated.played_at ?? null };
+            return next;
+          });
         }
       )
       .subscribe((status) => {
@@ -474,7 +478,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                         key={i}
                         className="text-xs px-1.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08]"
                       >
-                        {VIBE_EMOJI[v as keyof typeof VIBE_EMOJI] ?? v}
+                        {VIBE_EMOJI[v]}
                       </span>
                     ))}
                   </div>
