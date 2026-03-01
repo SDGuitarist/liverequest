@@ -472,8 +472,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                   </p>
                 )}
                 {song.vibes.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {song.vibes.map((v, i) => (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {song.vibes.slice(0, 5).map((v, i) => (
                       <span
                         key={i}
                         className="text-xs px-1.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08]"
@@ -481,6 +481,9 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                         {VIBE_EMOJI[v]}
                       </span>
                     ))}
+                    {song.vibes.length > 5 && (
+                      <span className="text-xs text-text-muted">+{song.vibes.length - 5}</span>
+                    )}
                   </div>
                 )}
               </div>

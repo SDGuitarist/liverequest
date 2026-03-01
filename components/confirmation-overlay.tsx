@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect, useCallback } from "react";
 import type { Song } from "@/lib/supabase/types";
 import { VIBE_VALUES, VIBE_EMOJI, type Vibe } from "@/lib/supabase/types";
 import { hapticSuccess } from "@/lib/haptics";
@@ -68,7 +67,6 @@ export function ConfirmationOverlay({
   const palette = getSongPalette(song.title, song.artist);
   const timeLabel = getTimeLabel();
   const [vibeSent, setVibeSent] = useState(false);
-  const supabase = useRef(createClient());
   // Dismiss on Escape key
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -132,17 +130,15 @@ export function ConfirmationOverlay({
     hapticSuccess();
 
     // Fire and forget — overlay can close safely.
-    // If the overlay unmounts before the promise resolves, the vibe is silently lost.
-    // Acceptable for v1: the vibe is optional metadata, not critical data.
-    supabase.current
-      .from("song_requests")
-      .update({ vibe })
-      .eq("id", requestId)
-      .then(({ error }) => {
-        if (error) {
-          setVibeSent(false); // allow retry
-        }
-      });
+    fetch("/api/gig/vibe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestId, vibe }),
+    }).then((res) => {
+      if (!res.ok) setVibeSent(false); // allow retry
+    }).catch(() => {
+      setVibeSent(false); // allow retry
+    });
   }
 
   return (
@@ -306,7 +302,7 @@ export function ConfirmationOverlay({
             style={{ animationDelay: "0.45s", animationFillMode: "backwards" }}
           >
             <p className="font-body text-caption text-text-muted mb-2.5">
-              {vibeSent ? "Vibe sent!" : "How\u0027s the vibe?"}
+              {vibeSent ? "Vibe sent!" : "How's the vibe?"}
             </p>
             <div className="flex gap-3 justify-center">
               {VIBE_VALUES.map((v) => (
