@@ -74,6 +74,8 @@ export interface Database {
           song_id: string
           session_id: string
           created_at: string
+          played_at: string | null
+          vibe: string | null
         }
         Insert: {
           id?: string
@@ -81,6 +83,8 @@ export interface Database {
           song_id: string
           session_id: string
           created_at?: string
+          played_at?: string | null
+          vibe?: string | null
         }
         Update: {
           id?: string
@@ -88,6 +92,8 @@ export interface Database {
           song_id?: string
           session_id?: string
           created_at?: string
+          played_at?: string | null
+          vibe?: string | null
         }
         Relationships: [
           {
