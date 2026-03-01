@@ -19,6 +19,7 @@ export function SongList({ songs, gig }: SongListProps) {
     Record<string, RequestState>
   >({});
   const [overlaySong, setOverlaySong] = useState<Song | null>(null);
+  const [overlayRequestId, setOverlayRequestId] = useState<string | null>(null);
   const [requestCount, setRequestCount] = useState<number | null>(null);
 
   const pendingCount = Object.values(requestStates).filter(
@@ -46,7 +47,12 @@ export function SongList({ songs, gig }: SongListProps) {
 
   const handleSuccess = useCallback((song: Song) => {
     setOverlaySong(song);
+    setOverlayRequestId(null); // Reset — ID will arrive via onRequestCreated
     setRequestCount(null); // Reset — count will arrive async
+  }, []);
+
+  const handleRequestCreated = useCallback((requestId: string) => {
+    setOverlayRequestId(requestId);
   }, []);
 
   const handleCountUpdate = useCallback((count: number) => {
@@ -130,6 +136,7 @@ export function SongList({ songs, gig }: SongListProps) {
                   requestState={effectiveState}
                   onStateChange={handleStateChange}
                   onSuccess={handleSuccess}
+                  onRequestCreated={handleRequestCreated}
                   onCountUpdate={handleCountUpdate}
                 />
               </div>
@@ -144,7 +151,11 @@ export function SongList({ songs, gig }: SongListProps) {
           song={overlaySong}
           venueName={gig.venue_name}
           requestCount={requestCount}
-          onDismiss={() => setOverlaySong(null)}
+          requestId={overlayRequestId}
+          onDismiss={() => {
+            setOverlaySong(null);
+            setOverlayRequestId(null);
+          }}
         />
       )}
     </>

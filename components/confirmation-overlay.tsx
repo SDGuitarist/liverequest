@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { Song } from "@/lib/supabase/types";
+import { VIBE_VALUES, type Vibe } from "@/lib/supabase/types";
 
 // --- Dynamic mesh gradient utilities ---
 
@@ -41,10 +43,23 @@ function getTimeLabel(): string | null {
   return null;
 }
 
+const VIBE_EMOJI: Record<Vibe, string> = {
+  fire: "\uD83D\uDD25",
+  more_energy: "\u26A1",
+  softer: "\uD83C\uDF19",
+};
+
+const VIBE_LABELS: Record<Vibe, string> = {
+  fire: "Fire",
+  more_energy: "More energy",
+  softer: "Softer",
+};
+
 interface ConfirmationOverlayProps {
   song: Song;
   venueName: string;
   requestCount: number | null;
+  requestId: string | null;
   onDismiss: () => void;
 }
 
@@ -52,10 +67,15 @@ export function ConfirmationOverlay({
   song,
   venueName,
   requestCount,
+  requestId,
   onDismiss,
 }: ConfirmationOverlayProps) {
   const palette = getSongPalette(song.title, song.artist);
   const timeLabel = getTimeLabel();
+  const [vibeSent, setVibeSent] = useState(false);
+  const supabase = useRef(createClient());
+  const isMounted = useRef(true);
+  useEffect(() => () => { isMounted.current = false; }, []);
 
   // Dismiss on Escape key
   useEffect(() => {
@@ -113,6 +133,24 @@ export function ConfirmationOverlay({
       // User cancelled share sheet — do nothing
     }
   }, [song, venueName]);
+
+  function handleVibe(vibe: Vibe) {
+    if (!requestId || vibeSent) return;
+    setVibeSent(true);
+
+    // Fire and forget — overlay can close safely.
+    // If the overlay unmounts before the promise resolves, the vibe is silently lost.
+    // Acceptable for v1: the vibe is optional metadata, not critical data.
+    supabase.current
+      .from("song_requests")
+      .update({ vibe })
+      .eq("id", requestId)
+      .then(({ error }) => {
+        if (error && isMounted.current) {
+          setVibeSent(false); // allow retry
+        }
+      });
+  }
 
   return (
     <div
@@ -267,6 +305,35 @@ export function ConfirmationOverlay({
             </div>
           )}
         </div>
+
+        {/* Vibe feedback — only shown when requestId is available */}
+        {requestId && (
+          <div
+            className="mt-6 animate-fade-up"
+            style={{ animationDelay: "0.45s", animationFillMode: "backwards" }}
+          >
+            <p className="font-body text-caption text-text-muted mb-2.5">
+              How&apos;s the vibe?
+            </p>
+            <div className="flex gap-3 justify-center">
+              {VIBE_VALUES.map((v) => (
+                <button
+                  key={v}
+                  onClick={() => handleVibe(v)}
+                  disabled={vibeSent}
+                  aria-label={VIBE_LABELS[v]}
+                  className={`px-4 py-2 rounded-full border font-body text-caption transition-[opacity,background-color,border-color,transform] duration-200 active:scale-[0.95] ${
+                    vibeSent
+                      ? "opacity-40 cursor-default"
+                      : "bg-white/[0.06] border-white/[0.08] text-text-secondary hover:bg-white/[0.1] hover:text-text-primary"
+                  }`}
+                >
+                  {VIBE_EMOJI[v]} {VIBE_LABELS[v]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Action buttons */}
         <div

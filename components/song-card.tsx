@@ -13,6 +13,7 @@ interface SongCardProps {
   requestState: RequestState;
   onStateChange: (songId: string, state: RequestState) => void;
   onSuccess: (song: Song) => void;
+  onRequestCreated?: (requestId: string) => void;
   onCountUpdate: (count: number) => void;
 }
 
@@ -24,6 +25,7 @@ export const SongCard = memo(function SongCard({
   requestState,
   onStateChange,
   onSuccess,
+  onRequestCreated,
   onCountUpdate,
 }: SongCardProps) {
   const supabase = useRef(createClient());
@@ -58,11 +60,15 @@ export const SongCard = memo(function SongCard({
     try {
       const sessionId = getSessionId();
 
-      const { error } = await supabase.current.from("song_requests").insert({
-        gig_id: gigId,
-        song_id: song.id,
-        session_id: sessionId,
-      });
+      const { data, error } = await supabase.current
+        .from("song_requests")
+        .insert({
+          gig_id: gigId,
+          song_id: song.id,
+          session_id: sessionId,
+        })
+        .select("id")
+        .single();
 
       if (error) {
         // Unique constraint violation = already requested = treat as success
@@ -70,6 +76,8 @@ export const SongCard = memo(function SongCard({
           onStateChange(song.id, { status: "sent" });
           hapticSuccess();
           onSuccess(song);
+          // No onRequestCreated — we don't have the row ID for the duplicate
+          // Vibe buttons will be hidden on the overlay (requestId is null)
           fetchCountInBackground();
         }
         // RLS rejection (gig closed, limit reached, etc.)
@@ -90,6 +98,7 @@ export const SongCard = memo(function SongCard({
         onStateChange(song.id, { status: "sent" });
         hapticSuccess();
         onSuccess(song);
+        if (data) onRequestCreated?.(data.id);
         fetchCountInBackground();
       }
     } catch {
