@@ -134,7 +134,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                   id: newReq.id,
                   song_id: newReq.song_id,
                   created_at: newReq.created_at,
-                  played_at: null,
+                  played_at: newReq.played_at ?? null,
                   songs: song,
                 },
                 ...prev,
@@ -246,7 +246,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         body: JSON.stringify({ gigId: gig.id, songId }),
       });
     } catch {
-      // If it fails, the next re-query will self-heal
+      // Self-heal: delayed re-query corrects optimistic state on failure
+      setTimeout(() => fetchRequests(), 2000);
     } finally {
       dismissInFlight.current.delete(songId);
     }
@@ -271,7 +272,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         body: JSON.stringify({ gigId: gig.id, songId }),
       });
     } catch {
-      // If it fails, the next re-query will self-heal
+      // Self-heal: delayed re-query corrects optimistic state on failure
+      setTimeout(() => fetchRequests(), 2000);
     } finally {
       dismissInFlight.current.delete(songId);
     }
@@ -287,7 +289,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
   );
   const pendingGrouped = useMemo(() => groupRequests(pendingRequests), [pendingRequests]);
   const playedGrouped = useMemo(() => groupRequests(playedRequests), [playedRequests]);
-  const audienceUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/r/alejandro`;
+  const audienceUrl = `${window.location.origin}/r/alejandro`;
 
   return (
     <div className="min-h-screen pb-8">

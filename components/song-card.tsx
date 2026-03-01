@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, memo } from "react";
+import { useRef, memo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getSessionId } from "@/lib/session";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
@@ -31,10 +31,6 @@ export const SongCard = memo(function SongCard({
   const supabase = useRef(createClient());
   // useRef gate for double-tap prevention (synchronous, unlike useState)
   const isSubmitting = useRef(false);
-  // Guard against calling setState after unmount
-  const isMounted = useRef(true);
-  useEffect(() => () => { isMounted.current = false; }, []);
-
   // Fire-and-forget: fetch tonight's request count in background
   function fetchCountInBackground() {
     supabase.current
@@ -42,7 +38,7 @@ export const SongCard = memo(function SongCard({
       .select("*", { count: "exact", head: true })
       .eq("gig_id", gigId)
       .then(({ count, error }) => {
-        if (!error && count !== null && isMounted.current) {
+        if (!error && count !== null) {
           onCountUpdate(count);
         }
       });

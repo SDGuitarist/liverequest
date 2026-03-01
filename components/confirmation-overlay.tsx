@@ -74,9 +74,6 @@ export function ConfirmationOverlay({
   const timeLabel = getTimeLabel();
   const [vibeSent, setVibeSent] = useState(false);
   const supabase = useRef(createClient());
-  const isMounted = useRef(true);
-  useEffect(() => () => { isMounted.current = false; }, []);
-
   // Dismiss on Escape key
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -146,7 +143,7 @@ export function ConfirmationOverlay({
       .update({ vibe })
       .eq("id", requestId)
       .then(({ error }) => {
-        if (error && isMounted.current) {
+        if (error) {
           setVibeSent(false); // allow retry
         }
       });
