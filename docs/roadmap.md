@@ -1,7 +1,7 @@
 # LiveRequest — Feature Roadmap
 
 > Last updated: 2026-03-01
-> Governed by: [Product Bible](../product-bible.md) — the Bible defines *what matters and why*; this roadmap defines *what's next and when*.
+> Governed by: [Product Bible](product-bible.md) — the Bible defines *what matters and why*; this roadmap defines *what's next and when*.
 
 ## Current State (Cycle 1 — complete)
 
@@ -221,7 +221,7 @@ After March 6, compile the first "gift" manually (see Product Bible: "What the G
 
 ## Guiding Principles
 
-1. **The Bible governs.** This roadmap is the tactical execution of the [Product Bible](../product-bible.md). If there's a conflict, the Bible wins.
+1. **The Bible governs.** This roadmap is the tactical execution of the [Product Bible](product-bible.md). If there's a conflict, the Bible wins.
 
 2. **Data capture before data display.** Every gig without the right columns is data lost forever. Capture changes always come before display changes.
 
