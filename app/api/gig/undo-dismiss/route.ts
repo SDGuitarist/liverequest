@@ -35,16 +35,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Gig not found" }, { status: 404 });
   }
 
-  // Soft-dismiss: set played_at timestamp (only on pending rows)
+  // Undo: clear played_at to restore to pending (only on already-played rows)
   const { error } = await supabase
     .from("song_requests")
-    .update({ played_at: new Date().toISOString() })
+    .update({ played_at: null })
     .eq("gig_id", gigId)
     .eq("song_id", songId)
-    .is("played_at", null);
+    .not("played_at", "is", null);
 
   if (error) {
-    console.error("dismiss failed:", error.code, error.message);
+    console.error("undo-dismiss failed:", error.code, error.message);
     return NextResponse.json({ error: "Operation failed" }, { status: 500 });
   }
 
