@@ -4,12 +4,13 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { hapticDismiss } from "@/lib/haptics";
-import type { Gig } from "@/lib/supabase/types";
+import type { Gig, SongRequest } from "@/lib/supabase/types";
 
 interface SongRequestRow {
   id: string;
   song_id: string;
   created_at: string;
+  played_at: string | null;
   songs: { id: string; title: string; artist: string | null } | null;
 }
 
@@ -85,7 +86,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     const gen = ++fetchGen.current;
     const { data } = await supabase.current
       .from("song_requests")
-      .select("id, song_id, created_at, songs(id, title, artist)")
+      .select("id, song_id, created_at, played_at, songs(id, title, artist)")
       .eq("gig_id", gig.id)
       .order("created_at", { ascending: false });
 
@@ -111,7 +112,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
           filter: `gig_id=eq.${gig.id}`,
         },
         async (payload) => {
-          const newReq = payload.new as { id: string; song_id: string; created_at: string; session_id: string };
+          const newReq = payload.new as SongRequest;
 
           // Deduplicate
           if (seenIds.current.has(newReq.id)) return;
@@ -132,6 +133,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                   id: newReq.id,
                   song_id: newReq.song_id,
                   created_at: newReq.created_at,
+                  played_at: null,
                   songs: song,
                 },
                 ...prev,
@@ -223,11 +225,15 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     toggleInFlight.current = false;
   }
 
-  // Dismiss a song — mark as played, remove from queue
+  // Mark a song as played — optimistic update, fire-and-forget API call
   async function handleDismiss(songId: string) {
     hapticDismiss();
-    // Optimistic: remove from local state immediately
-    setRequests((prev) => prev.filter((r) => r.song_id !== songId));
+    // Optimistic: set played_at locally
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.song_id === songId ? { ...r, played_at: new Date().toISOString() } : r
+      )
+    );
 
     try {
       await fetch("/api/gig/dismiss", {
@@ -236,12 +242,40 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
         body: JSON.stringify({ gigId: gig.id, songId }),
       });
     } catch {
-      // If it fails, the next re-query will restore them
+      // If it fails, the next re-query will self-heal
     }
   }
 
-  const grouped = useMemo(() => groupRequests(requests), [requests]);
-  const totalRequests = requests.length;
+  // Undo a played song — restore to pending
+  async function handleUndoDismiss(songId: string) {
+    // Optimistic: clear played_at locally
+    setRequests((prev) =>
+      prev.map((r) =>
+        r.song_id === songId ? { ...r, played_at: null } : r
+      )
+    );
+
+    try {
+      await fetch("/api/gig/undo-dismiss", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gigId: gig.id, songId }),
+      });
+    } catch {
+      // If it fails, the next re-query will self-heal
+    }
+  }
+
+  const pendingRequests = useMemo(
+    () => requests.filter((r) => r.played_at === null),
+    [requests]
+  );
+  const playedRequests = useMemo(
+    () => requests.filter((r) => r.played_at !== null),
+    [requests]
+  );
+  const pendingGrouped = useMemo(() => groupRequests(pendingRequests), [pendingRequests]);
+  const playedGrouped = useMemo(() => groupRequests(playedRequests), [playedRequests]);
   const audienceUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/r/alejandro`;
 
   return (
@@ -337,25 +371,25 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
       <div className="px-5 mb-3 flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20">
           <span className="font-display font-bold text-caption text-accent">
-            {totalRequests}
+            {pendingRequests.length}
           </span>
           <span className="font-body text-caption text-text-secondary">
-            request{totalRequests !== 1 ? "s" : ""}
+            pending
           </span>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-raised border border-white/[0.06]">
           <span className="font-display font-bold text-caption text-text-primary">
-            {grouped.length}
+            {playedRequests.length}
           </span>
           <span className="font-body text-caption text-text-secondary">
-            song{grouped.length !== 1 ? "s" : ""}
+            played
           </span>
         </div>
       </div>
 
-      {/* Request queue */}
+      {/* Pending requests */}
       <div className="px-5 flex flex-col gap-2">
-        {grouped.length === 0 ? (
+        {pendingGrouped.length === 0 ? (
           <div className="py-16 text-center">
             <p className="font-body text-body text-text-muted">
               {requestsOpen
@@ -364,7 +398,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
             </p>
           </div>
         ) : (
-          grouped.map((song, i) => (
+          pendingGrouped.map((song) => (
             <div
               key={song.songId}
               className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised border border-white/[0.06] hover:border-white/[0.12] transition-[border-color] duration-200 animate-[slide-in-new_0.4s_ease-out_backwards]"
@@ -377,7 +411,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
               {/* Left accent bar — gradient fade */}
               <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-accent/0 via-accent/40 to-accent/0" />
 
-              {/* Count badge — key forces re-mount on count change for bump animation */}
+              {/* Count badge */}
               <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center">
                 <span
                   key={song.count}
@@ -399,25 +433,70 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                 )}
               </div>
 
-              {/* Time + Done button */}
+              {/* Time + Mark Played button */}
               <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
                 <span className="font-body text-caption text-text-muted">
                   {timeAgo(song.latestRequest)}
                 </span>
                 <button
                   onClick={() => handleDismiss(song.songId)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-body text-caption text-success bg-success/10 border border-success/20 hover:bg-success/20 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-body text-caption text-amber-400 bg-amber-400/10 border border-amber-400/20 hover:bg-amber-400/20 transition-colors"
                 >
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
-                  Done
+                  Played
                 </button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Played requests */}
+      {playedGrouped.length > 0 && (
+        <div className="px-5 mt-6 flex flex-col gap-2">
+          <p className="font-body text-caption text-text-muted mb-1">Played</p>
+          {playedGrouped.map((song) => (
+            <div
+              key={song.songId}
+              className="group relative flex items-center gap-3 p-4 rounded-xl bg-surface-raised/50 border border-white/[0.04] opacity-60"
+            >
+              {/* Left accent bar — muted */}
+              <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-gradient-to-b from-success/0 via-success/20 to-success/0" />
+
+              {/* Count badge — muted */}
+              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-success/10 border border-success/15 flex items-center justify-center">
+                <span className="font-display font-bold text-xl text-success/70">
+                  {song.count}
+                </span>
+              </div>
+
+              {/* Song info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-display font-bold text-song text-text-secondary truncate">
+                  {song.title}
+                </p>
+                {song.artist && (
+                  <p className="font-body text-caption text-text-muted truncate mt-0.5">
+                    {song.artist}
+                  </p>
+                )}
+              </div>
+
+              {/* Undo button */}
+              <div className="flex-shrink-0">
+                <button
+                  onClick={() => handleUndoDismiss(song.songId)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg font-body text-caption text-text-muted bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:text-text-secondary transition-colors"
+                >
+                  Undo
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
