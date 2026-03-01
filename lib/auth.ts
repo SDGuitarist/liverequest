@@ -1,17 +1,29 @@
-import { cookies } from "next/headers";
-import crypto from "crypto";
+import 'server-only'
+import { SignJWT, jwtVerify } from 'jose'
+import { cookies } from 'next/headers'
+import { requireEnv } from '@/lib/env'
 
-// In-memory token store (fine for single-instance MVP)
-const validTokens = new Set<string>();
+const SECRET = new TextEncoder().encode(requireEnv('COOKIE_SECRET'))
+const SESSION_DURATION = 24 * 60 * 60 // 24 hours in seconds
 
-export function createAuthToken(): string {
-  const token = crypto.randomUUID();
-  validTokens.add(token);
-  return token;
+export async function signSessionCookie(): Promise<string> {
+  const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000)
+  return new SignJWT({})
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(expiresAt)
+    .sign(SECRET)
 }
 
 export async function isAuthenticated(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const auth = cookieStore.get("performer_auth");
-  return !!auth && validTokens.has(auth.value);
+  const cookieStore = await cookies()
+  const auth = cookieStore.get('performer_auth')
+  if (!auth) return false
+
+  try {
+    await jwtVerify(auth.value, SECRET, { algorithms: ['HS256'] })
+    return true
+  } catch {
+    return false
+  }
 }
