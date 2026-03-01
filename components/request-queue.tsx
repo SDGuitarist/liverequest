@@ -73,6 +73,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
   const supabase = useRef(createClient());
   const fetchGen = useRef(0);
   const toggleInFlight = useRef(false);
+  const dismissInFlight = useRef(new Set<string>());
   const [, setTick] = useState(0);
 
   // Update relative timestamps every 30s
@@ -225,9 +226,12 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     toggleInFlight.current = false;
   }
 
-  // Mark a song as played — optimistic update, fire-and-forget API call
+  // Mark a song as played — fire-and-forget with double-tap guard
   async function handleDismiss(songId: string) {
+    if (dismissInFlight.current.has(songId)) return;
+    dismissInFlight.current.add(songId);
     hapticDismiss();
+
     // Optimistic: set played_at locally
     setRequests((prev) =>
       prev.map((r) =>
@@ -243,11 +247,16 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
       });
     } catch {
       // If it fails, the next re-query will self-heal
+    } finally {
+      dismissInFlight.current.delete(songId);
     }
   }
 
-  // Undo a played song — restore to pending
+  // Undo a played song — fire-and-forget with double-tap guard
   async function handleUndoDismiss(songId: string) {
+    if (dismissInFlight.current.has(songId)) return;
+    dismissInFlight.current.add(songId);
+
     // Optimistic: clear played_at locally
     setRequests((prev) =>
       prev.map((r) =>
@@ -263,6 +272,8 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
       });
     } catch {
       // If it fails, the next re-query will self-heal
+    } finally {
+      dismissInFlight.current.delete(songId);
     }
   }
 
