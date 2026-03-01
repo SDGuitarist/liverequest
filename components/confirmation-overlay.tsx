@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Song } from "@/lib/supabase/types";
-import { VIBE_VALUES, type Vibe } from "@/lib/supabase/types";
+import { VIBE_VALUES, VIBE_EMOJI, type Vibe } from "@/lib/supabase/types";
+import { hapticSuccess } from "@/lib/haptics";
 
 // --- Dynamic mesh gradient utilities ---
 
@@ -42,12 +43,6 @@ function getTimeLabel(): string | null {
   if (hour >= 23 || hour < 2) return "LATE NIGHT";
   return null;
 }
-
-const VIBE_EMOJI: Record<Vibe, string> = {
-  fire: "\uD83D\uDD25",
-  more_energy: "\u26A1",
-  softer: "\uD83C\uDF19",
-};
 
 const VIBE_LABELS: Record<Vibe, string> = {
   fire: "Fire",
@@ -134,6 +129,7 @@ export function ConfirmationOverlay({
   function handleVibe(vibe: Vibe) {
     if (!requestId || vibeSent) return;
     setVibeSent(true);
+    hapticSuccess();
 
     // Fire and forget — overlay can close safely.
     // If the overlay unmounts before the promise resolves, the vibe is silently lost.
@@ -310,7 +306,7 @@ export function ConfirmationOverlay({
             style={{ animationDelay: "0.45s", animationFillMode: "backwards" }}
           >
             <p className="font-body text-caption text-text-muted mb-2.5">
-              How&apos;s the vibe?
+              {vibeSent ? "Vibe sent!" : "How\u0027s the vibe?"}
             </p>
             <div className="flex gap-3 justify-center">
               {VIBE_VALUES.map((v) => (

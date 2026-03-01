@@ -5,12 +5,14 @@ import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { hapticDismiss } from "@/lib/haptics";
 import type { Gig, SongRequest } from "@/lib/supabase/types";
+import { VIBE_EMOJI } from "@/lib/supabase/types";
 
 interface SongRequestRow {
   id: string;
   song_id: string;
   created_at: string;
   played_at: string | null;
+  vibe: string | null;
   songs: { id: string; title: string; artist: string | null } | null;
 }
 
@@ -20,6 +22,7 @@ interface GroupedSong {
   artist: string | null;
   count: number;
   latestRequest: string;
+  vibes: string[];
 }
 
 interface RequestQueueProps {
@@ -38,6 +41,7 @@ function groupRequests(requests: SongRequestRow[]): GroupedSong[] {
       if (req.created_at > existing.latestRequest) {
         existing.latestRequest = req.created_at;
       }
+      if (req.vibe) existing.vibes.push(req.vibe);
     } else {
       map.set(req.song_id, {
         songId: req.song_id,
@@ -45,6 +49,7 @@ function groupRequests(requests: SongRequestRow[]): GroupedSong[] {
         artist: req.songs.artist,
         count: 1,
         latestRequest: req.created_at,
+        vibes: req.vibe ? [req.vibe] : [],
       });
     }
   }
@@ -87,7 +92,7 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
     const gen = ++fetchGen.current;
     const { data } = await supabase.current
       .from("song_requests")
-      .select("id, song_id, created_at, played_at, songs(id, title, artist)")
+      .select("id, song_id, created_at, played_at, vibe, songs(id, title, artist)")
       .eq("gig_id", gig.id)
       .order("created_at", { ascending: false });
 
@@ -135,12 +140,30 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                   song_id: newReq.song_id,
                   created_at: newReq.created_at,
                   played_at: newReq.played_at ?? null,
+                  vibe: newReq.vibe ?? null,
                   songs: song,
                 },
                 ...prev,
               ];
             });
           }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "song_requests",
+          filter: `gig_id=eq.${gig.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as SongRequest;
+          setRequests((prev) =>
+            prev.map((r) =>
+              r.id === updated.id ? { ...r, vibe: updated.vibe ?? null } : r
+            )
+          );
         }
       )
       .subscribe((status) => {
@@ -443,6 +466,18 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
                   <p className="font-body text-caption text-text-secondary truncate mt-0.5">
                     {song.artist}
                   </p>
+                )}
+                {song.vibes.length > 0 && (
+                  <div className="flex gap-1 mt-1">
+                    {song.vibes.map((v, i) => (
+                      <span
+                        key={i}
+                        className="text-xs px-1.5 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08]"
+                      >
+                        {VIBE_EMOJI[v as keyof typeof VIBE_EMOJI] ?? v}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
 

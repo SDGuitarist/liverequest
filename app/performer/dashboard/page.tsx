@@ -38,7 +38,7 @@ export default async function PerformerDashboard() {
   // Fetch initial grouped requests
   const { data: requests } = await supabase
     .from("song_requests")
-    .select("id, song_id, created_at, played_at, songs(id, title, artist)")
+    .select("id, song_id, created_at, played_at, vibe, songs(id, title, artist)")
     .eq("gig_id", gig.id)
     .order("created_at", { ascending: false });
 
