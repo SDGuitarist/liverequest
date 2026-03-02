@@ -58,6 +58,7 @@ npm run lint     # ESLint
 - **Haptic feedback** — All user confirmations use `navigator.vibrate()` with progressive enhancement.
 - **Glassmorphic performance** — Use `transition-[specific-props]` not `transition-all`. Limit `backdrop-blur` layers on mobile.
 - **Vibe types are strict** — Use `VibeType` union (`"fire" | "energy" | "chill"`), never loose strings.
+- After `/workflows:compound`, always run `/update-learnings` to propagate lessons to all docs.
 
 ## Git Conventions
 
