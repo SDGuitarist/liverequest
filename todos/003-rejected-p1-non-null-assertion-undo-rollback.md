@@ -1,5 +1,5 @@
 ---
-status: pending
+status: rejected
 priority: p1
 issue_id: "003"
 tags: [code-review, typescript, frontend]
