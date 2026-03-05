@@ -2,27 +2,30 @@
 
 **Date:** 2026-03-05
 **Branch:** main
-**Phase:** Cycle 1 fully complete (all review todos resolved). Next: Vercel deploy.
+**Phase:** Deploy complete. App is live. Next: Compound phase for deploy, then Cycle 2.
 
 ## Current State
 
-Cycle 1 (Mark as Played + Vibe Feedback) is fully shipped with all 20 review todos resolved (17 complete, 1 rejected, 2 N/A). All docs, brainstorms, plans, and solution files are tracked in git. The last fix added `is_active` gig guards to all service-role API routes. The codebase is clean — zero untracked files, zero pending todos.
+LiveRequest is **deployed to production** at **https://liverequest.vercel.app**. All Phase 3 verification checks pass: audience page loads, performer login works with cookie persistence across refreshes, auth rejection works, song request flow verified end-to-end, security headers (HSTS, X-Frame-Options, X-Content-Type-Options) confirmed. First gig is March 6 at The Blue Note.
 
 ## Key Artifacts
 
 | Phase | Location |
 |-------|----------|
 | Brainstorm (Cycle 1) | `docs/brainstorms/2026-03-01-cycle1-played-vibes.md` |
-| Research (Cycle 1) | `docs/brainstorms/2026-03-01-cycle1-played-vibes-research.md` |
 | Plan (Cycle 1) | `docs/plans/2026-03-01-cycle1-played-vibes-plan.md` |
 | Solution (Cycle 1) | `docs/solutions/cycle1-vibe-review-fixes.md` |
 | Brainstorm (Deploy) | `docs/brainstorms/2026-02-28-deploy-vercel-brainstorm.md` |
 | Plan (Deploy) | `docs/plans/2026-02-28-feat-deploy-vercel-plan.md` |
 | Review Context | `compound-engineering.local.md` |
 
-## Review Fixes Pending
+## Production Details
 
-None. All 20 todos resolved.
+- **URL:** https://liverequest.vercel.app
+- **Vercel project:** `alexguillenmusic-gmailcoms-projects/liverequest`
+- **Auth:** `jose` JWT cookies (HS256), 24h expiry, `sameSite: "lax"`
+- **Env vars:** 5 set in Vercel (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, PERFORMER_PASSWORD, COOKIE_SECRET)
+- **Deploy method:** `npx vercel --prod` or push to `main`
 
 ## Deferred Items
 
@@ -34,15 +37,15 @@ None. All 20 todos resolved.
 
 ## Three Questions
 
-1. **Hardest decision?** Whether to create the vibe API route (020) now or defer. Created it because the pattern existed and agent-native parity is worth enforcing early.
-2. **What was rejected?** Option B/C for optimistic UI (complex coordination with dismissingIds). Option A (fire-and-forget + double-tap guard) won for simplicity.
-3. **Least confident about?** Whether the `jose` JWT cookie approach will work seamlessly with Next.js 16 server components + API routes during Vercel deploy. Plan says resolved, but untested in production.
+1. **Hardest decision?** Whether the 500 status on raw HTML dashboard requests was a real bug or Next.js streaming behavior. Confirmed it's a Next.js 16 `force-dynamic` quirk — RSC protocol returns 200, browser renders correctly, all functionality works.
+2. **What was rejected?** GitHub-connected auto-deploy (used CLI `vercel --prod` instead for immediate control). Also considered separate Supabase prod project — deferred as unnecessary for solo MVP.
+3. **Least confident about?** Whether the shared dev/prod Supabase project will cause issues during the gig (e.g., local dev creating test requests that appear on the live dashboard). Mitigated by only having one active gig at a time.
 
 ## Prompt for Next Session
 
 ```
 Read HANDOFF.md for context. This is LiveRequest, a live musician song request app.
-Cycle 1 is fully complete with all review todos resolved. Deploy to Vercel is next —
-the plan exists at docs/plans/2026-02-28-feat-deploy-vercel-plan.md. First gig is
-March 6 at The Blue Note. Start the Work phase for the deploy plan.
+App is deployed at https://liverequest.vercel.app — all verification checks passed.
+First gig is March 6 at The Blue Note. Run the Compound phase for the deploy work,
+then decide on next cycle (Cycle 2: Musician Intelligence, or dynamic slug management).
 ```
