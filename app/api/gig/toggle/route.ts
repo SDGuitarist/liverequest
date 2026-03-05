@@ -30,9 +30,10 @@ export async function POST(request: NextRequest) {
     .from("gigs")
     .select("id")
     .eq("id", gigId)
+    .eq("is_active", true)
     .single();
   if (!gig) {
-    return NextResponse.json({ error: "Gig not found" }, { status: 404 });
+    return NextResponse.json({ error: "Gig not found or inactive" }, { status: 404 });
   }
 
   const { error } = await supabase
