@@ -8,6 +8,7 @@ Hub file for lessons across all development cycles. Detailed writeups live in [`
 |-------|---------|------------|
 | 1 | Mark as Played + Vibe Feedback | Optimistic UI needs a self-heal gap — always re-fetch on error, don't leave stale state |
 | 1 (review) | Vibe type safety + re-render guard | Loose string types compound across call sites; narrow to union types early |
+| 1 (cleanup) | Todo status audit + last P1 fix | Verify todo status against source code — filenames lie, frontmatter drifts |
 | Design Polish | Glassmorphic dark mode (Phase A) | `transition-all` kills mobile perf — scope to specific properties |
 | Design Polish | Delight animations (Phase B) | Always gate animations behind `prefers-reduced-motion` |
 | Design Polish | Shareability overlay (Phase C) | Fetch supplemental data (request count) without blocking the overlay render |
