@@ -40,6 +40,13 @@ Patterns that recurred across 2+ cycles or prevented entire categories of bugs.
 | runtime-errors | [cycle1-post-review-fixes](docs/solutions/cycle1-post-review-fixes.md) | Cycle 1 |
 | code-review | [cycle1-vibe-review-fixes](docs/solutions/cycle1-vibe-review-fixes.md) | Cycle 1 |
 
+## Cross-Tool Workflow (March 2026)
+
+| # | Pattern | Source |
+|---|---------|--------|
+| 7 | **Two independent reviewers > one self-reviewing tool** — Codex reviews first (fresh eyes, no context bias), then Claude Code reviews with compound learnings researcher. Deduplicate findings across both. | Codex integration setup |
+| 8 | **Handoff prompts start with "Read docs/plans/[file].md"** — Codex generates focused Claude Code prompts with exact file paths, scope boundaries, acceptance criteria, and stop conditions. Prevents broad exploration. | Codex `handoff-to-claude-code` skill |
+
 ## How to Use
 
 **After a review:** Check Top Patterns before applying fixes — you may be looking at a symptom, not a root cause.
