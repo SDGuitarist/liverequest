@@ -4,6 +4,12 @@
 **Branch:** main
 **Phase:** Deploy compound complete. All cycles documented. Ready for next feature.
 
+## Current Priority
+
+- Goal: choose the next feature cycle without disrupting the live app before the next gig.
+- Stop condition: one next cycle is chosen and scoped as a brainstorm or plan.
+- Read next: `docs/roadmap.md`
+
 ## Current State
 
 LiveRequest is **deployed and live** at **https://liverequest.vercel.app**. Deploy compound phase complete — solution doc written, learnings propagated. First gig is March 6 at The Blue Note. All Cycle 1 features (mark as played, vibe feedback, optimistic UI) and deploy work are shipped and documented.
