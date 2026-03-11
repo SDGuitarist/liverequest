@@ -14,6 +14,7 @@ Hub file for lessons across all development cycles. Detailed writeups live in [`
 | Design Polish | Shareability overlay (Phase C) | Fetch supplemental data (request count) without blocking the overlay render |
 | Design Polish | Stagger + haptics (Phase D) | Haptic feedback is progressive enhancement — wrap in feature detection, never assume |
 | Diagnostic Fix | RLS, races, security headers | Open anon RLS policies bypass all API auth — RLS is the real security boundary, not route middleware |
+| Setlist Mgmt | Setlist toggle + review fixes | RLS policies are invisible query filters — admin views must use service client. Match optimistic UI complexity to actual concurrency level. |
 
 ## Top Patterns
 
@@ -27,6 +28,8 @@ Patterns that recurred across 2+ cycles or prevented entire categories of bugs.
 | 4 | **Scope CSS transitions** — `transition-[opacity,transform]` not `transition-all`; saves mobile GPU budget | Phase A, D | [glassmorphic-perf](docs/solutions/glassmorphic-dark-mode-performance.md) |
 | 5 | **Progressive enhancement for haptics** — feature-detect `navigator.vibrate`, never assume support | Phase D | [stagger-haptics](docs/solutions/phase-d-polish-stagger-haptics.md) |
 | 6 | **Gate animations on reduced-motion** — every `@keyframes` needs a `prefers-reduced-motion` media query | Phase B, D | [delight-animations](docs/solutions/phase-b-delight-animations.md) |
+| 7 | **RLS = invisible query filter** — admin views need `createServiceClient()` to see records RLS hides from `anon`. "No filter" in code ≠ no filter at runtime. | Diagnostic, Setlist | [setlist-review-fixes](docs/solutions/setlist-management-review-fixes.md) |
+| 8 | **Match complexity to concurrency** — don't copy patterns from multi-user components (RequestQueue) to single-user ones (SetlistManager). Simple revert-on-error > generation counters for single-performer use. | Setlist | [setlist-review-fixes](docs/solutions/setlist-management-review-fixes.md) |
 
 ## Solution Docs Index
 
@@ -39,6 +42,7 @@ Patterns that recurred across 2+ cycles or prevented entire categories of bugs.
 | security-and-reliability | [diagnostic-fix-session-rls-races-perf](docs/solutions/diagnostic-fix-session-rls-races-perf.md) | Diagnostic Fix |
 | runtime-errors | [cycle1-post-review-fixes](docs/solutions/cycle1-post-review-fixes.md) | Cycle 1 |
 | code-review | [cycle1-vibe-review-fixes](docs/solutions/cycle1-vibe-review-fixes.md) | Cycle 1 |
+| code-review | [setlist-management-review-fixes](docs/solutions/setlist-management-review-fixes.md) | Setlist Mgmt |
 
 ## Cross-Tool Workflow (March 2026)
 
