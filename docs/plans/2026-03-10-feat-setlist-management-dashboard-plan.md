@@ -5,7 +5,7 @@ status: active
 date: 2026-03-10
 origin: docs/brainstorms/2026-03-10-setlist-management-brainstorm.md
 feed_forward:
-  risk: "revalidatePath is best-effort cache invalidation — already-open guest pages won't update until the user refreshes or navigates, and edge-cached pages may serve stale content even after invalidation"
+  risk: "Guest page cache behavior is uncertain — it sets revalidate=60 but also calls cookies() via createClient(), which may force dynamic rendering. Already-open guest pages will not auto-update regardless. Exact Vercel caching behavior must be verified in Phase 1."
   verify_first: true
 ---
 
@@ -59,6 +59,8 @@ app/performer/dashboard/page.tsx (server)
 
 **Critical decision:** Both components stay mounted. Tab switching uses CSS `hidden` class so `RequestQueue`'s realtime subscription is never torn down. The performer never misses incoming requests while managing the setlist.
 
+**Implementation constraint:** `DashboardTabs` must NOT conditionally render, key-remount, or otherwise unmount `RequestQueue`. `RequestQueue` owns the Supabase realtime subscription and the wake lock — unmounting it kills both. Always render both children; toggle visibility with CSS `hidden` only.
+
 ### Component: `dashboard-tabs.tsx` (~40 lines)
 
 ```
@@ -80,30 +82,45 @@ app/performer/dashboard/page.tsx (server)
   4. Only treat 2xx with { success: true } as confirmation
 - Double-tap guard: inFlightRef per songId
 - Sort: alphabetical by title
-- Summary line: "X of Y songs active"
+- (Optional) Summary line: "X of Y songs active" — not in brainstorm, include only if trivial
 - Search: deferred (only 25 songs currently; add when catalog grows)
 ```
 
 ### API Route: `app/api/songs/toggle/route.ts` (~45 lines)
 
-Follows existing pattern from `app/api/gig/toggle/route.ts`:
+Auth and validation follow the existing pattern from `app/api/gig/toggle/route.ts` (steps 1-5 below). The mutation step intentionally diverges: the exemplar uses a separate SELECT to verify the row exists, then a bare `.update()`. This route instead chains `.select("id")` onto the UPDATE so a single query both mutates and detects 0 matched rows, allowing a 404 response without a second round-trip.
 
 ```
-1. isAuthenticated() check → 401
-2. Parse JSON body → 400 on failure
-3. Validate songId with isUUID() → 400
-4. Validate isActive is boolean → 400
-5. createServiceClient() (bypasses RLS)
+1. isAuthenticated() check → 401                          (same as exemplar)
+2. Parse JSON body → 400 on failure                       (same)
+3. Validate songId with isUUID() → 400                    (same)
+4. Validate isActive is boolean → 400                     (same)
+5. createServiceClient() (bypasses RLS)                   (same)
 6. UPDATE songs SET is_active = $isActive WHERE id = $songId
-7. Check update count — if 0 rows updated, return 404 (song not found). MUST NOT return success if no row was updated.
-8. revalidatePath('/r/alejandro') — best-effort cache invalidation for the next visitor/refresh. Does NOT push updates to already-open guest pages.
+   — chain .select("id") to get the updated row back      (differs from exemplar)
+7. If data is null or empty array → return 404. MUST NOT return success if no row was updated.
+8. revalidatePath('/r/alejandro') — best-effort cache invalidation. Does NOT push updates to already-open guest pages.
 9. Return { success: true }
 ```
 
-**Failure-path requirements:**
-- If the Supabase update returns 0 rows affected (e.g., bad songId), return `{ error: "Song not found" }` with status 404.
-- If the Supabase update returns an error, return status 500.
-- The client MUST treat any non-2xx response as a failure, revert the optimistic UI, and refetch after 2s to self-heal.
+**Failure-path — concrete Supabase pattern:**
+```ts
+const { data, error } = await supabase
+  .from("songs")
+  .update({ is_active: isActive })
+  .eq("id", songId)
+  .select("id");  // returns the updated row(s)
+
+if (error) {
+  console.error("song toggle failed:", error.code, error.message);
+  return NextResponse.json({ error: "Operation failed" }, { status: 500 });
+}
+if (!data || data.length === 0) {
+  return NextResponse.json({ error: "Song not found" }, { status: 404 });
+}
+```
+- The `.select("id")` chain makes Supabase return the matched rows. If `songId` doesn't exist, `data` is an empty array — not an error.
+- The client MUST treat any non-2xx response (or missing `{ success: true }` in body) as a failure, revert the optimistic UI, and trigger a 2s self-heal refetch.
 
 **Key design choice:** Send explicit `{ songId: string, isActive: boolean }`, not a server-side toggle. This is idempotent — double-taps and retries are safe. Matches existing `toggle/route.ts` which sends `requestsOpen: boolean` explicitly.
 
@@ -126,12 +143,12 @@ No `is_active` filter — performer sees the full catalog.
 |-----------|-----------|
 | Song deactivated but has pending requests | Requests remain visible on dashboard. Toggle only affects guest page. |
 | All songs deactivated | Guest page shows "No songs available" (existing empty state). Setlist tab shows all songs as inactive — no special warning needed. |
-| Guest requests song during stale-cache window | Allowed. Request is valid — performer hid song from future guests, not from in-flight requests. `revalidatePath` invalidates the cache for the *next* page load, but already-open guest pages won't see the change until they refresh. Acceptable for Thursday — the window is brief and the request is still valid. |
+| Guest requests song after performer toggled it off | Allowed. Request is valid — performer hid the song from future guests, not from in-flight requests. Already-open guest pages will not auto-update; guests must refresh or re-open to see the change. The exact cache/revalidation timing on Vercel must be verified (see Risks). |
 | Double-tap on toggle | In-flight guard per songId prevents duplicate API calls. |
 | Toggle fails (network error or non-2xx) | Optimistic UI reverts, delayed refetch self-heals (2s). Client must check `response.ok` — any non-2xx triggers the revert path. Existing pattern from dismiss flow. |
 | Toggle returns success but no row updated | Route must check update count and return 404 if 0 rows matched. Client treats 404 as error and reverts. |
 | Phone locks/unlocks during setlist view | No special handling needed. Song list is static (not realtime). Performer taps toggle when ready. |
-| Two browser tabs on dashboard | Each tab has independent state. No conflict — both send explicit `isActive` value, not relative toggles. |
+| Two browser tabs on dashboard | Explicit `isActive` values avoid toggle-inversion bugs (no relative flip). However, stale tabs can overwrite a newer toggle from another tab — last write wins. Acceptable for the current single-performer Thursday scenario; not a concern in practice since the performer uses one device. |
 
 ## Acceptance Criteria
 
@@ -139,9 +156,11 @@ No `is_active` filter — performer sees the full catalog.
 - [ ] Default tab is "Requests" (existing behavior preserved)
 - [ ] Setlist tab shows all songs with active/inactive toggle
 - [ ] Toggling a song calls POST `/api/songs/toggle` with auth check
-- [ ] Toggle route returns 404 if no song row was updated (not a false success)
-- [ ] Toggle updates `is_active` in Supabase and calls `revalidatePath` (best-effort — invalidates cache for the next page load, not a live push to open pages)
-- [ ] Guest page reflects changes on next load/refresh after cache invalidation (not guaranteed instant for already-open pages)
+- [ ] Toggle route returns 404 if no song row was updated (uses `.select("id")` chain to detect empty result)
+- [ ] Toggle updates `is_active` in Supabase and calls `revalidatePath` (best-effort cache invalidation)
+- [ ] Already-open guest pages do NOT auto-update (expected — no realtime on guest page)
+- [ ] A manual refresh or new guest page load reflects the latest `is_active` state
+- [ ] Exact cache timing on Vercel verified in Phase 1 (may be ISR, may be dynamic due to `cookies()` call — see Risks)
 - [ ] Existing requests for deactivated songs remain visible on dashboard
 - [ ] RequestQueue realtime subscription stays alive when on Setlist tab
 - [ ] Double-tap guard prevents duplicate API calls
@@ -164,12 +183,15 @@ No `is_active` filter — performer sees the full catalog.
 ### Phase 3: Setlist manager (~120 lines)
 - Create `components/setlist-manager.tsx`
 - Toggle switches, optimistic UI, double-tap guard
-- Summary line with active count
+- (Optional) Summary line with active count — only if trivial to add
 - **Commit checkpoint**
 
 ### Phase 4: Verify
-- Manual test on dev: toggle song, check guest page updates
+- Toggle a song, open guest page in a fresh tab — confirm it reflects the change
+- Confirm an already-open guest tab does NOT auto-update (expected)
+- On Vercel: check response headers (`x-vercel-cache`, `cache-control`) to determine actual cache behavior
 - Verify realtime requests still arrive while on Setlist tab
+- Toggle a nonexistent songId (via curl or devtools) — confirm 404 response
 - Test on mobile viewport
 - **Commit checkpoint**
 
@@ -189,15 +211,18 @@ The internal toggle function and Supabase mutation pattern are reusable. No refa
 ## How We'll Know It Worked
 
 1. Performer can toggle songs on/off from the dashboard during Thursday's gig
-2. Guest page reflects changes on next load or manual refresh (cache is invalidated by `revalidatePath`, but already-open pages require a refresh)
-3. No missed requests while managing setlist (subscription stays alive)
-4. No accidental double-toggles or stale UI states
-5. Toggle route returns 404 (not 200) when given a nonexistent songId
-6. Client reverts optimistic state on any non-2xx response
+2. A guest who refreshes or opens a new browser tab sees the updated song list (active/inactive reflects the toggle)
+3. A guest who already has the page open does NOT see changes without refreshing (expected, not a bug)
+4. No missed requests while managing setlist (RequestQueue realtime subscription stays alive across tab switches)
+5. No accidental double-toggles or stale UI states
+6. Toggle route returns 404 (not 200) when given a nonexistent songId
+7. Client reverts optimistic state on any non-2xx response or missing `{ success: true }`
 
 ## Most Likely Way This Plan Is Wrong
 
-`revalidatePath` is best-effort cache invalidation — it tells the server to regenerate the page on the next request, but it does not push updates to already-open guest browsers. If a guest already has the page open, they won't see the toggled song disappear until they refresh. Edge caching (Vercel CDN) may also serve stale content briefly after invalidation. For Thursday's gig this is acceptable (guests typically re-open the page per request), but if it causes confusion, the real fix is Supabase Realtime on the guest page — not more aggressive revalidation.
+The guest page's cache behavior is not settled. It exports `revalidate = 60` (suggesting ISR), but `createClient()` calls `cookies()`, which may opt the route into fully dynamic rendering in Next.js. If the page is already dynamic, `revalidatePath` may be a no-op or behave differently than expected. If it's ISR, Vercel's edge CDN may still serve stale content briefly after invalidation. Either way, already-open guest pages will never auto-update — guests must refresh.
+
+This uncertainty is acceptable for Thursday (guests typically open the page fresh per request), but it must be verified in Phase 1. If `revalidatePath` has no observable effect, remove it and accept whatever the default behavior is. The real fix for live updates is Supabase Realtime on the guest page — a future cycle concern.
 
 Secondary risk: `revalidatePath('/r/alejandro')` is hardcoded to one slug. When dynamic slugs ship, this needs to revalidate the correct path.
 
@@ -205,11 +230,12 @@ Secondary risk: `revalidatePath('/r/alejandro')` is hardcoded to one slug. When 
 
 | Risk | Mitigation |
 |------|-----------|
-| `revalidatePath` is best-effort — already-open guest pages won't update until refresh; edge cache may serve stale content briefly | Accept for Thursday. Document in UI that changes apply "on next guest visit." Future fix: Supabase Realtime on guest page. |
-| `revalidatePath` might not execute from a POST route handler in Next.js 16 | Test in Phase 1 before building UI. Fallback: remove it, accept 60s ISR delay. |
+| Guest page cache model is uncertain — `revalidate=60` suggests ISR, but `cookies()` call may force dynamic rendering. Actual Vercel behavior unknown. | Verify in Phase 1: toggle a song, then load guest page in a fresh tab. Observe response headers (`x-vercel-cache`, `cache-control`). If `revalidatePath` has no effect, remove it. |
+| Already-open guest pages will not auto-update after a toggle | Expected behavior — no realtime on guest page. Not a bug. Future fix: Supabase Realtime subscription on guest page. |
+| `revalidatePath` might not execute from a POST route handler in Next.js 16 | Test in Phase 1 before building UI. Fallback: remove it, accept default cache behavior. |
 | Hardcoded slug in revalidatePath | Only one slug exists today. Track in known risks for dynamic slug cycle. |
 | Dashboard page load slower (extra songs query) | Songs table has ~25 rows. Negligible. |
-| Toggle route returns false success on bad songId | Mitigated by checking update count and returning 404 if 0 rows matched. |
+| Toggle route returns false success on bad songId | Mitigated by `.select("id")` chain — empty result array triggers 404 response. |
 
 ## Sources
 
@@ -223,14 +249,18 @@ Secondary risk: `revalidatePath('/r/alejandro')` is hardcoded to one slug. When 
 
 ## Rollback Plan
 
-If the setlist feature causes issues during Thursday's gig:
+### Mid-gig fallback (no deploy needed)
+- Stay on the "Requests" tab and ignore the "Setlist" tab entirely. The setlist tab is additive — ignoring it gives the exact same stable dashboard experience as before this feature. No redeploy, no code changes, no risk.
+- This restores the old dashboard behavior but does NOT restore setlist-management capability. If the performer still needs to change song visibility mid-gig and the setlist feature is misbehaving, the manual last-resort fallback is the existing Supabase Dashboard workflow (log in, edit `is_active` directly).
 
-1. **Quick disable:** Revert `app/performer/dashboard/page.tsx` to remove `<DashboardTabs>` and restore direct `<RequestQueue>` rendering. One file change, redeploy.
-2. **Full revert:** `git revert` the setlist commits (they'll be isolated per-phase commits). The `is_active` column and song data are untouched — no schema rollback needed.
-3. **Mid-gig escape:** If the tab UI is confusing mid-gig, just stay on the "Requests" tab. The setlist tab is additive — ignoring it restores the old experience.
+### Deploy-based rollback (before or after the gig, not during)
+1. **Minimal revert:** Revert `app/performer/dashboard/page.tsx` to remove `<DashboardTabs>` and restore direct `<RequestQueue>` rendering. One file change + `npx vercel --prod`.
+2. **Full revert:** `git revert` the setlist commits (they'll be isolated per-phase commits). The `is_active` column and song data are untouched — no schema rollback needed. Redeploy.
+
+A redeploy is NOT an immediate live-gig escape hatch — it takes minutes and risks disrupting the live dashboard. Use the mid-gig fallback during a gig; save deploy-based rollback for before/after.
 
 ## Feed-Forward
 
 - **Hardest decision:** Keeping both tabs mounted with CSS `hidden` instead of conditional rendering. This is slightly wasteful (both components in DOM) but guarantees the realtime subscription never drops. The alternative — re-subscribing on tab switch — adds complexity and a brief window where requests could be missed.
 - **Rejected alternatives:** Separate `/performer/songs` page (navigation away from live dashboard), slide-out panel (more complex UI), full CRUD (scope creep), server-side toggle inference (race condition risk), request-count badge and toggle haptics (nice-to-have but not required for Thursday — can add later).
-- **Least confident:** Whether `revalidatePath` from a POST route handler actually invalidates the ISR cache in Next.js 16 on Vercel, and whether Vercel's edge CDN serves stale content after invalidation. The brainstorm accepted 60s ISR delay as tolerable; this plan calls `revalidatePath` as an optimization but must not promise instant guest-page updates. Test in Phase 1 — if it doesn't work, accept the 60s window.
+- **Least confident:** The guest page's actual cache behavior on Vercel. It sets `revalidate = 60` but also calls `cookies()` via `createClient()`, which may force dynamic rendering. We don't know if the page is ISR-cached, dynamically rendered, or edge-cached until we verify on Vercel. `revalidatePath` is included as a best-effort optimization but may be a no-op. Test in Phase 1: toggle, reload guest page in fresh tab, check response headers. If no observable effect, remove `revalidatePath` and accept default behavior. Already-open guest pages won't update regardless.
