@@ -11,7 +11,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("songs")
-    .select("*")
+    .select("id, title, artist, is_active")
     .order("title", { ascending: true });
 
   if (error) {

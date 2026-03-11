@@ -11,52 +11,21 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const [inFlightIds, setInFlightIds] = useState<Set<string>>(new Set());
   const inFlight = useRef(new Set<string>());
-  // Generation counter — bumped on every toggle. Self-heal refetches only
-  // apply if the generation hasn't changed since the heal was scheduled.
-  const generationRef = useRef(0);
-  const healTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Re-fetch all songs from the server to self-heal stale optimistic state.
-  // Only applies the result if no newer toggle has fired since scheduling.
-  const refetchSongs = useCallback(async (expectedGen: number) => {
-    try {
-      const res = await fetch("/api/songs/list");
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && generationRef.current === expectedGen) {
-          setSongs(data);
-        }
-      }
-    } catch {
-      // Silent — self-heal is best-effort
-    }
-  }, []);
-
-  const revertAndHeal = useCallback((songId: string, newActive: boolean) => {
-    setSongs((prev) =>
-      prev.map((s) => (s.id === songId ? { ...s, is_active: !newActive } : s))
-    );
-    const gen = generationRef.current;
-    if (healTimerRef.current) clearTimeout(healTimerRef.current);
-    healTimerRef.current = setTimeout(() => refetchSongs(gen), 2000);
-  }, [refetchSongs]);
 
   const handleToggle = useCallback(async (songId: string, newActive: boolean) => {
     if (inFlight.current.has(songId)) return;
     inFlight.current.add(songId);
     setInFlightIds((prev) => new Set(prev).add(songId));
 
-    // Bump generation — any pending self-heal from an older toggle is now stale
-    generationRef.current++;
-    if (healTimerRef.current) {
-      clearTimeout(healTimerRef.current);
-      healTimerRef.current = null;
-    }
-
     // Optimistic update
     setSongs((prev) =>
       prev.map((s) => (s.id === songId ? { ...s, is_active: newActive } : s))
     );
+
+    const revert = () =>
+      setSongs((prev) =>
+        prev.map((s) => (s.id === songId ? { ...s, is_active: !newActive } : s))
+      );
 
     try {
       const res = await fetch("/api/songs/toggle", {
@@ -65,23 +34,12 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
         body: JSON.stringify({ songId, isActive: newActive }),
       });
 
-      // Only keep optimistic state if API explicitly confirms success
-      let confirmed = false;
-      if (res.ok) {
-        try {
-          const json = await res.json();
-          confirmed = json?.success === true;
-        } catch {
-          // JSON parse failure — treat as unconfirmed
-        }
-      }
-
-      if (!confirmed) {
-        revertAndHeal(songId, newActive);
+      if (!res.ok) {
+        revert();
       }
     } catch {
-      // Network error — revert + self-heal
-      revertAndHeal(songId, newActive);
+      // Network error — revert
+      revert();
     } finally {
       inFlight.current.delete(songId);
       setInFlightIds((prev) => {
@@ -90,7 +48,7 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
         return next;
       });
     }
-  }, [revertAndHeal]);
+  }, []);
 
   const activeCount = songs.filter((s) => s.is_active).length;
 
