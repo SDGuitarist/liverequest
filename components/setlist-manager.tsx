@@ -10,14 +10,21 @@ interface SetlistManagerProps {
 export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const inFlight = useRef(new Set<string>());
+  // Generation counter — bumped on every toggle. Self-heal refetches only
+  // apply if the generation hasn't changed since the heal was scheduled.
+  const generationRef = useRef(0);
+  const healTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Re-fetch all songs from the server to self-heal stale optimistic state
-  const refetchSongs = useCallback(async () => {
+  // Re-fetch all songs from the server to self-heal stale optimistic state.
+  // Only applies the result if no newer toggle has fired since scheduling.
+  const refetchSongs = useCallback(async (expectedGen: number) => {
     try {
       const res = await fetch("/api/songs/list");
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) setSongs(data);
+        if (Array.isArray(data) && generationRef.current === expectedGen) {
+          setSongs(data);
+        }
       }
     } catch {
       // Silent — self-heal is best-effort
@@ -28,12 +35,21 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
     setSongs((prev) =>
       prev.map((s) => (s.id === songId ? { ...s, is_active: !newActive } : s))
     );
-    setTimeout(() => refetchSongs(), 2000);
+    const gen = generationRef.current;
+    if (healTimerRef.current) clearTimeout(healTimerRef.current);
+    healTimerRef.current = setTimeout(() => refetchSongs(gen), 2000);
   }, [refetchSongs]);
 
   const handleToggle = useCallback(async (songId: string, newActive: boolean) => {
     if (inFlight.current.has(songId)) return;
     inFlight.current.add(songId);
+
+    // Bump generation — any pending self-heal from an older toggle is now stale
+    generationRef.current++;
+    if (healTimerRef.current) {
+      clearTimeout(healTimerRef.current);
+      healTimerRef.current = null;
+    }
 
     // Optimistic update
     setSongs((prev) =>
