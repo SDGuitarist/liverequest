@@ -11,6 +11,26 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
   const [songs, setSongs] = useState<Song[]>(initialSongs);
   const inFlight = useRef(new Set<string>());
 
+  // Re-fetch all songs from the server to self-heal stale optimistic state
+  const refetchSongs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/songs/list");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setSongs(data);
+      }
+    } catch {
+      // Silent — self-heal is best-effort
+    }
+  }, []);
+
+  const revertAndHeal = useCallback((songId: string, newActive: boolean) => {
+    setSongs((prev) =>
+      prev.map((s) => (s.id === songId ? { ...s, is_active: !newActive } : s))
+    );
+    setTimeout(() => refetchSongs(), 2000);
+  }, [refetchSongs]);
+
   const handleToggle = useCallback(async (songId: string, newActive: boolean) => {
     if (inFlight.current.has(songId)) return;
     inFlight.current.add(songId);
@@ -27,21 +47,27 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
         body: JSON.stringify({ songId, isActive: newActive }),
       });
 
-      if (!res.ok) {
-        // Revert optimistic update
-        setSongs((prev) =>
-          prev.map((s) => (s.id === songId ? { ...s, is_active: !newActive } : s))
-        );
+      // Only keep optimistic state if API explicitly confirms success
+      let confirmed = false;
+      if (res.ok) {
+        try {
+          const json = await res.json();
+          confirmed = json?.success === true;
+        } catch {
+          // JSON parse failure — treat as unconfirmed
+        }
+      }
+
+      if (!confirmed) {
+        revertAndHeal(songId, newActive);
       }
     } catch {
-      // Revert on network error + self-heal refetch
-      setSongs((prev) =>
-        prev.map((s) => (s.id === songId ? { ...s, is_active: !newActive } : s))
-      );
+      // Network error — revert + self-heal
+      revertAndHeal(songId, newActive);
     } finally {
       inFlight.current.delete(songId);
     }
-  }, []);
+  }, [revertAndHeal]);
 
   const activeCount = songs.filter((s) => s.is_active).length;
 
