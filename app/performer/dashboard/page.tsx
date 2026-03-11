@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { RequestQueue } from "@/components/request-queue";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 import { SetlistManager } from "@/components/setlist-manager";
@@ -38,14 +38,16 @@ export default async function PerformerDashboard() {
     );
   }
 
-  // Fetch initial grouped requests + all songs (including inactive) in parallel
+  // Fetch requests (anon client, RLS scoped) + all songs including inactive
+  // (service client, bypasses RLS — anon policy only returns is_active=true)
+  const supabaseService = createServiceClient();
   const [{ data: requests }, { data: songs }] = await Promise.all([
     supabase
       .from("song_requests")
       .select("id, song_id, created_at, played_at, vibe, songs(id, title, artist)")
       .eq("gig_id", gig.id)
       .order("created_at", { ascending: false }),
-    supabase
+    supabaseService
       .from("songs")
       .select("*")
       .order("title", { ascending: true }),

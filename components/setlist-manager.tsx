@@ -9,6 +9,7 @@ interface SetlistManagerProps {
 
 export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
   const [songs, setSongs] = useState<Song[]>(initialSongs);
+  const [inFlightIds, setInFlightIds] = useState<Set<string>>(new Set());
   const inFlight = useRef(new Set<string>());
   // Generation counter — bumped on every toggle. Self-heal refetches only
   // apply if the generation hasn't changed since the heal was scheduled.
@@ -43,6 +44,7 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
   const handleToggle = useCallback(async (songId: string, newActive: boolean) => {
     if (inFlight.current.has(songId)) return;
     inFlight.current.add(songId);
+    setInFlightIds((prev) => new Set(prev).add(songId));
 
     // Bump generation — any pending self-heal from an older toggle is now stale
     generationRef.current++;
@@ -82,6 +84,11 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
       revertAndHeal(songId, newActive);
     } finally {
       inFlight.current.delete(songId);
+      setInFlightIds((prev) => {
+        const next = new Set(prev);
+        next.delete(songId);
+        return next;
+      });
     }
   }, [revertAndHeal]);
 
@@ -122,10 +129,11 @@ export function SetlistManager({ songs: initialSongs }: SetlistManagerProps) {
               role="switch"
               aria-checked={song.is_active}
               aria-label={`${song.is_active ? "Hide" : "Show"} ${song.title}`}
+              disabled={inFlightIds.has(song.id)}
               onClick={() => handleToggle(song.id, !song.is_active)}
               className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 ${
                 song.is_active ? "bg-accent" : "bg-white/[0.12]"
-              }`}
+              } disabled:opacity-50 disabled:cursor-wait`}
             >
               <span
                 className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
