@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { isValidSyncApiKey } from "@/lib/sync-auth";
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
   const songs = parseSongs(body);
   if (songs === null) {
     return jsonNoStore(
-      { error: "Body must be { songs: [{ title, artist? }] }" },
+      { error: "Missing songs array" },
       { status: 400 },
     );
   }
@@ -169,6 +170,7 @@ export async function POST(request: NextRequest) {
       return jsonNoStore({ error: "Operation failed" }, { status: 500 });
     }
 
+    revalidatePath("/r/alejandro");
   }
 
   return jsonNoStore({
