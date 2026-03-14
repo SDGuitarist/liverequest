@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Gig, Song, PerformanceSession, Venue, Configuration } from "@/lib/supabase/types";
 import { CONFIGURATION_VALUES, CONFIGURATION_LABEL } from "@/lib/supabase/types";
@@ -9,12 +9,12 @@ interface PreSetFormProps {
   gig: Gig;
   session: PerformanceSession | null;
   songs: Song[];
+  venues: Venue[];
   previousSession?: PerformanceSession;
 }
 
-export function PreSetForm({ gig, session, songs, previousSession }: PreSetFormProps) {
+export function PreSetForm({ gig, session, songs, venues, previousSession }: PreSetFormProps) {
   const router = useRouter();
-  const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState<string | "new" | "">(
     ""
   );
@@ -27,19 +27,6 @@ export function PreSetForm({ gig, session, songs, previousSession }: PreSetFormP
     previousSession?.genre_style ?? ""
   );
   const [submitting, setSubmitting] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(
-    session?.id ?? null
-  );
-
-  // Fetch venues on mount
-  useEffect(() => {
-    fetch("/api/venues/list")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setVenues(data);
-      })
-      .catch(() => {});
-  }, []);
 
   // When venue changes, apply defaults
   const handleVenueChange = useCallback(
@@ -88,7 +75,7 @@ export function PreSetForm({ gig, session, songs, previousSession }: PreSetFormP
       }
 
       // Create session if we don't have one
-      let sessionId = currentSessionId;
+      let sessionId = session?.id ?? null;
       if (!sessionId) {
         const sessionRes = await fetch("/api/session/create", {
           method: "POST",
@@ -109,7 +96,6 @@ export function PreSetForm({ gig, session, songs, previousSession }: PreSetFormP
         }
         const newSession = await sessionRes.json();
         sessionId = newSession.id;
-        setCurrentSessionId(sessionId);
       }
 
       // Go live
@@ -129,12 +115,12 @@ export function PreSetForm({ gig, session, songs, previousSession }: PreSetFormP
     }
   }, [
     gig.id,
+    session,
     selectedVenueId,
     newVenueName,
     newVenueAddress,
     configuration,
     genreStyle,
-    currentSessionId,
     previousSession,
     router,
   ]);

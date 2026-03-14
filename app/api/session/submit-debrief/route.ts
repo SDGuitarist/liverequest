@@ -40,6 +40,17 @@ export async function POST(request: NextRequest) {
   if (typeof d.complaints_received !== "boolean") {
     return NextResponse.json({ error: "Invalid complaints_received" }, { status: 400 });
   }
+  if (!Number.isInteger(d.walkup_count) || d.walkup_count > 500) {
+    return NextResponse.json({ error: "Invalid walkup_count" }, { status: 400 });
+  }
+
+  // Length caps on free-text fields
+  const MAX_TEXT = 2000;
+  for (const field of ["setlist_deviations", "staff_feedback", "observations"] as const) {
+    if (typeof d[field] === "string" && (d[field] as string).length > MAX_TEXT) {
+      return NextResponse.json({ error: `${field} too long (max ${MAX_TEXT})` }, { status: 400 });
+    }
+  }
 
   const postSetData: PostSetData = {
     version: 1,

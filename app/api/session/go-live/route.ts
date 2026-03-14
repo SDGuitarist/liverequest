@@ -23,30 +23,23 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // Verify session exists and is in pre_set status
-  const { data: session, error: fetchError } = await supabase
-    .from("performance_sessions")
-    .select("id, status")
-    .eq("id", session_id)
-    .single();
-
-  if (fetchError || !session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-  if (session.status !== "pre_set") {
-    return NextResponse.json(
-      { error: `Cannot go live from status: ${session.status}` },
-      { status: 409 }
-    );
-  }
-
-  const { error } = await supabase
+  // Atomic: only updates if status is still pre_set (no TOCTOU gap)
+  const { data, error } = await supabase
     .from("performance_sessions")
     .update({ status: "live", started_at: new Date().toISOString() })
-    .eq("id", session_id);
+    .eq("id", session_id)
+    .eq("status", "pre_set")
+    .select("id")
+    .single();
 
-  if (error) {
-    console.error("go-live failed:", error.code, error.message);
+  if (error || !data) {
+    if (!data && !error) {
+      return NextResponse.json(
+        { error: "Session not found or not in pre_set status" },
+        { status: 409 }
+      );
+    }
+    console.error("go-live failed:", error?.code, error?.message);
     return NextResponse.json({ error: "Operation failed" }, { status: 500 });
   }
 

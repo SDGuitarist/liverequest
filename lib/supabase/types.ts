@@ -7,7 +7,7 @@ import { Database } from "./database.types";
 export type Song = Database["public"]["Tables"]["songs"]["Row"];
 export type Gig = Database["public"]["Tables"]["gigs"]["Row"];
 export type Venue = Database["public"]["Tables"]["venues"]["Row"];
-export type SongLog = Database["public"]["Tables"]["song_logs"]["Row"];
+
 
 // Narrowed SongRequest type — overrides vibe from string to Vibe union
 export type SongRequest = Omit<
@@ -59,6 +59,12 @@ export const VOLUME_CAL_LABEL: Record<VolumeCal, string> = {
   right: "Right",
   too_soft: "Too Soft",
 };
+
+// Narrowed SongLog — overrides song_quality and volume_calibration from string to unions
+export type SongLog = Omit<
+  Database["public"]["Tables"]["song_logs"]["Row"],
+  "song_quality" | "volume_calibration"
+> & { song_quality: SongQuality; volume_calibration: VolumeCal };
 
 // Performer configuration
 export const CONFIGURATION_VALUES = ["solo", "duo", "trio", "ensemble"] as const;

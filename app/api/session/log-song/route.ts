@@ -29,6 +29,9 @@ export async function POST(request: NextRequest) {
   if (!song_id && (typeof song_title !== "string" || song_title.trim().length === 0)) {
     return NextResponse.json({ error: "song_id or song_title is required" }, { status: 400 });
   }
+  if (typeof song_title === "string" && song_title.trim().length > 200) {
+    return NextResponse.json({ error: "song_title too long (max 200)" }, { status: 400 });
+  }
   if (typeof song_quality !== "string" || !SONG_QUALITY_VALUES.includes(song_quality as never)) {
     return NextResponse.json({ error: "Invalid song_quality" }, { status: 400 });
   }
@@ -40,6 +43,17 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServiceClient();
+
+  // Verify session is live before accepting logs
+  const { data: session } = await supabase
+    .from("performance_sessions")
+    .select("status")
+    .eq("id", session_id)
+    .single();
+
+  if (!session || session.status !== "live") {
+    return NextResponse.json({ error: "Session is not live" }, { status: 409 });
+  }
 
   // Auto-assign set_position
   const { data: maxPos } = await supabase

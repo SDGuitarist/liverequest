@@ -7,7 +7,7 @@ import { PreSetForm } from "@/components/pre-set-form";
 import { PostSetForm } from "@/components/post-set-form";
 import { SongLogFab } from "@/components/song-log-fab";
 import { isAuthenticated } from "@/lib/auth";
-import type { Song, PerformanceSession, SessionStatus } from "@/lib/supabase/types";
+import type { Song, Venue, PerformanceSession, SessionStatus } from "@/lib/supabase/types";
 
 // Don't cache — dashboard must always show fresh data
 export const dynamic = "force-dynamic";
@@ -54,13 +54,20 @@ export default async function PerformerDashboard() {
   const session = sessionRow as PerformanceSession | null;
   const phase: SessionStatus | "no_session" = session?.status ?? "no_session";
 
-  // Fetch all songs (service client — bypasses RLS to include inactive)
-  const { data: songs } = await supabaseService
-    .from("songs")
-    .select("*")
-    .order("title", { ascending: true });
+  // Fetch songs + venues in parallel (service client — bypasses RLS)
+  const [{ data: songs }, { data: venueRows }] = await Promise.all([
+    supabaseService
+      .from("songs")
+      .select("*")
+      .order("title", { ascending: true }),
+    supabaseService
+      .from("venues")
+      .select("*")
+      .order("name"),
+  ]);
 
   const allSongs = (songs ?? []) as Song[];
+  const allVenues = (venueRows ?? []) as Venue[];
 
   // ── Pre-set or no session: show setup form ──
   if (phase === "no_session" || phase === "pre_set") {
@@ -69,6 +76,7 @@ export default async function PerformerDashboard() {
         gig={gig}
         session={session}
         songs={allSongs}
+        venues={allVenues}
       />
     );
   }
@@ -87,6 +95,7 @@ export default async function PerformerDashboard() {
         gig={gig}
         session={null}
         songs={allSongs}
+        venues={allVenues}
         previousSession={session!}
       />
     );
@@ -120,7 +129,7 @@ export default async function PerformerDashboard() {
       <SongLogFab
         sessionId={session!.id}
         songs={allSongs}
-        initialLogs={songLogs ?? []}
+        initialLogs={(songLogs ?? []) as import("@/lib/supabase/types").SongLog[]}
       />
     </>
   );

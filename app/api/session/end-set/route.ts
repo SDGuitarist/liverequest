@@ -23,30 +23,23 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // Verify session is live
-  const { data: session, error: fetchError } = await supabase
-    .from("performance_sessions")
-    .select("id, status")
-    .eq("id", session_id)
-    .single();
-
-  if (fetchError || !session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-  if (session.status !== "live") {
-    return NextResponse.json(
-      { error: `Cannot end set from status: ${session.status}` },
-      { status: 409 }
-    );
-  }
-
-  const { error } = await supabase
+  // Atomic: only updates if status is still live (no TOCTOU gap)
+  const { data, error } = await supabase
     .from("performance_sessions")
     .update({ status: "post_set", ended_at: new Date().toISOString() })
-    .eq("id", session_id);
+    .eq("id", session_id)
+    .eq("status", "live")
+    .select("id")
+    .single();
 
-  if (error) {
-    console.error("end-set failed:", error.code, error.message);
+  if (error || !data) {
+    if (!data && !error) {
+      return NextResponse.json(
+        { error: "Session not found or not in live status" },
+        { status: 409 }
+      );
+    }
+    console.error("end-set failed:", error?.code, error?.message);
     return NextResponse.json({ error: "Operation failed" }, { status: 500 });
   }
 

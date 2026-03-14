@@ -21,6 +21,9 @@ export async function POST(request: NextRequest) {
   if (typeof name !== "string" || name.trim().length === 0) {
     return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
+  if (name.trim().length > 200) {
+    return NextResponse.json({ error: "Name too long (max 200)" }, { status: 400 });
+  }
   if (address !== undefined && typeof address !== "string") {
     return NextResponse.json({ error: "Invalid address" }, { status: 400 });
   }

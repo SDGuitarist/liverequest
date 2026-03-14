@@ -26,6 +26,7 @@ export function SongLogFab({ sessionId, songs, initialLogs }: SongLogFabProps) {
   const [showNotOnList, setShowNotOnList] = useState(false);
   const [customTitle, setCustomTitle] = useState("");
   const [lastLogChip, setLastLogChip] = useState<{ title: string; id: string } | null>(null);
+  const [logError, setLogError] = useState<string | null>(null);
   const chipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
 
@@ -57,6 +58,7 @@ export function SongLogFab({ sessionId, songs, initialLogs }: SongLogFabProps) {
       if (!selectedSongId && !selectedSongTitle) return;
 
       inFlightRef.current = true;
+      setLogError(null);
 
       const songTitle =
         selectedSongTitle ??
@@ -86,12 +88,14 @@ export function SongLogFab({ sessionId, songs, initialLogs }: SongLogFabProps) {
           setLastLogChip({ title: songTitle, id: newLog.id });
           if (chipTimerRef.current) clearTimeout(chipTimerRef.current);
           chipTimerRef.current = setTimeout(() => setLastLogChip(null), 5000);
+          handleClose();
+        } else {
+          setLogError("Failed to save log. Try again.");
         }
       } catch {
-        // Silent fail — next log attempt will work
+        setLogError("Network error. Try again.");
       } finally {
         inFlightRef.current = false;
-        handleClose();
       }
     },
     [sessionId, selectedSongId, selectedSongTitle, songQuality, volumeCal, songs, handleClose]
@@ -316,6 +320,13 @@ export function SongLogFab({ sessionId, songs, initialLogs }: SongLogFabProps) {
                     ))}
                   </div>
                 </div>
+
+                {/* Error feedback */}
+                {logError && (
+                  <div className="mb-4 px-4 py-2 rounded-lg bg-red-500/15 border border-red-500/20 text-red-400 font-body text-caption">
+                    {logError}
+                  </div>
+                )}
 
                 {/* Guest Acknowledgment — auto-submits */}
                 <div>
