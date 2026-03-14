@@ -3,8 +3,11 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { RequestQueue } from "@/components/request-queue";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 import { SetlistManager } from "@/components/setlist-manager";
+import { PreSetForm } from "@/components/pre-set-form";
+import { PostSetForm } from "@/components/post-set-form";
+import { SongLogFab } from "@/components/song-log-fab";
 import { isAuthenticated } from "@/lib/auth";
-import type { Song } from "@/lib/supabase/types";
+import type { Song, PerformanceSession, SessionStatus } from "@/lib/supabase/types";
 
 // Don't cache — dashboard must always show fresh data
 export const dynamic = "force-dynamic";
@@ -15,6 +18,7 @@ export default async function PerformerDashboard() {
   }
 
   const supabase = await createClient();
+  const supabaseService = createServiceClient();
 
   // Fetch the active gig
   const { data: gig } = await supabase
@@ -38,30 +42,86 @@ export default async function PerformerDashboard() {
     );
   }
 
-  // Fetch requests (anon client, RLS scoped) + all songs including inactive
-  // (service client, bypasses RLS — anon policy only returns is_active=true)
-  const supabaseService = createServiceClient();
-  const [{ data: requests }, { data: songs }] = await Promise.all([
-    supabase
-      .from("song_requests")
-      .select("id, song_id, created_at, played_at, vibe, songs(id, title, artist)")
-      .eq("gig_id", gig.id)
-      .order("created_at", { ascending: false }),
-    supabaseService
-      .from("songs")
-      .select("*")
-      .order("title", { ascending: true }),
-  ]);
+  // Fetch the most recent session for this gig (session recovery)
+  const { data: sessionRow } = await supabaseService
+    .from("performance_sessions")
+    .select("*")
+    .eq("gig_id", gig.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
 
-  // DB CHECK constraint guarantees vibe is a valid Vibe value — safe to narrow
+  const session = sessionRow as PerformanceSession | null;
+  const phase: SessionStatus | "no_session" = session?.status ?? "no_session";
+
+  // Fetch all songs (service client — bypasses RLS to include inactive)
+  const { data: songs } = await supabaseService
+    .from("songs")
+    .select("*")
+    .order("title", { ascending: true });
+
+  const allSongs = (songs ?? []) as Song[];
+
+  // ── Pre-set or no session: show setup form ──
+  if (phase === "no_session" || phase === "pre_set") {
+    return (
+      <PreSetForm
+        gig={gig}
+        session={session}
+        songs={allSongs}
+      />
+    );
+  }
+
+  // ── Post-set: show debrief form ──
+  if (phase === "post_set") {
+    return (
+      <PostSetForm session={session!} />
+    );
+  }
+
+  // ── Complete: show "Start Next Set" option ──
+  if (phase === "complete") {
+    return (
+      <PreSetForm
+        gig={gig}
+        session={null}
+        songs={allSongs}
+        previousSession={session!}
+      />
+    );
+  }
+
+  // ── Live: show normal dashboard with tabs + FAB ──
+  const { data: requests } = await supabase
+    .from("song_requests")
+    .select("id, song_id, created_at, played_at, vibe, songs(id, title, artist)")
+    .eq("gig_id", gig.id)
+    .order("created_at", { ascending: false });
+
+  // Fetch song logs for this session (to track what's been played)
+  const { data: songLogs } = await supabaseService
+    .from("song_logs")
+    .select("*")
+    .eq("session_id", session!.id)
+    .order("set_position", { ascending: true });
+
   return (
-    <DashboardTabs
-      requestsContent={
-        <RequestQueue gig={gig} initialRequests={(requests ?? []) as Parameters<typeof RequestQueue>[0]["initialRequests"]} />
-      }
-      setlistContent={
-        <SetlistManager songs={(songs ?? []) as Song[]} />
-      }
-    />
+    <>
+      <DashboardTabs
+        sessionId={session!.id}
+        requestsContent={
+          <RequestQueue gig={gig} initialRequests={(requests ?? []) as Parameters<typeof RequestQueue>[0]["initialRequests"]} />
+        }
+        setlistContent={
+          <SetlistManager songs={allSongs} />
+        }
+      />
+      <SongLogFab
+        sessionId={session!.id}
+        songs={allSongs}
+        initialLogs={songLogs ?? []}
+      />
+    </>
   );
 }
