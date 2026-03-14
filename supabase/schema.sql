@@ -13,6 +13,9 @@ create table songs (
   artist text,
   sort_order int default 0,
   is_active boolean default true,
+  energy_level text check (energy_level in ('ambient', 'medium', 'high')),
+  repertoire_type text check (repertoire_type in ('instrumental', 'instrumental_with_vocals',
+    'vocal_forward', 'traditional_cultural', 'contemporary_covers')),
   created_at timestamptz not null default now()
 );
 
@@ -39,6 +42,45 @@ create table song_requests (
   unique(gig_id, song_id, session_id)
 );
 
+-- Venues (saved presets for repeat locations)
+create table venues (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  address text,
+  notes text,
+  default_configuration text check (default_configuration in ('solo', 'duo', 'trio', 'ensemble')),
+  default_genre_style text,
+  created_at timestamptz not null default now()
+);
+
+-- Performance Sessions (one per set, linked to a gig)
+create table performance_sessions (
+  id uuid primary key default gen_random_uuid(),
+  gig_id uuid not null references gigs(id) on delete restrict,
+  venue_id uuid references venues(id) on delete set null,
+  set_number int not null default 1,
+  configuration text not null check (configuration in ('solo', 'duo', 'trio', 'ensemble')),
+  genre_style text,
+  status text not null default 'pre_set' check (status in ('pre_set', 'live', 'post_set', 'complete')),
+  post_set_data jsonb,
+  started_at timestamptz,
+  ended_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- Song Logs (between-song observations, one per song played)
+create table song_logs (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references performance_sessions(id) on delete cascade,
+  song_id uuid references songs(id) on delete set null,
+  song_title text,
+  song_quality text not null check (song_quality in ('off', 'fine', 'locked_in')),
+  volume_calibration text not null check (volume_calibration in ('too_loud', 'right', 'too_soft')),
+  guest_acknowledgment boolean not null default false,
+  set_position int not null,
+  logged_at timestamptz not null default now()
+);
+
 -- ============================================
 -- CONSTRAINTS
 -- ============================================
@@ -47,6 +89,10 @@ create table song_requests (
 create unique index idx_one_active_gig
   on gigs(is_active)
   where is_active = true;
+
+-- Only one live session per gig at a time
+create unique index idx_one_live_session_per_gig
+  on performance_sessions (gig_id) where status = 'live';
 
 -- ============================================
 -- INDEXES
@@ -66,6 +112,12 @@ create index idx_requests_gig_session on song_requests(gig_id, session_id);
 -- Loading requests for a gig, ordered by time
 create index idx_requests_gig_created on song_requests(gig_id, created_at desc);
 
+-- Find sessions for a gig (dashboard state machine)
+create index idx_sessions_gig on performance_sessions(gig_id, created_at desc);
+
+-- Find song logs for a session (between-song history)
+create index idx_song_logs_session on song_logs(session_id, set_position);
+
 -- ============================================
 -- ROW LEVEL SECURITY
 -- ============================================
@@ -73,6 +125,9 @@ create index idx_requests_gig_created on song_requests(gig_id, created_at desc);
 alter table songs enable row level security;
 alter table gigs enable row level security;
 alter table song_requests enable row level security;
+alter table venues enable row level security;
+alter table performance_sessions enable row level security;
+alter table song_logs enable row level security;
 
 -- Public read: songs (active only)
 create policy "Public read active songs" on songs

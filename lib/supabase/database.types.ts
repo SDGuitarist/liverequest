@@ -13,6 +13,144 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      venues: {
+        Row: {
+          id: string
+          name: string
+          address: string | null
+          notes: string | null
+          default_configuration: string | null
+          default_genre_style: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          address?: string | null
+          notes?: string | null
+          default_configuration?: string | null
+          default_genre_style?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          address?: string | null
+          notes?: string | null
+          default_configuration?: string | null
+          default_genre_style?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      performance_sessions: {
+        Row: {
+          id: string
+          gig_id: string
+          venue_id: string | null
+          set_number: number
+          configuration: string
+          genre_style: string | null
+          status: string
+          post_set_data: Json | null
+          started_at: string | null
+          ended_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          gig_id: string
+          venue_id?: string | null
+          set_number?: number
+          configuration: string
+          genre_style?: string | null
+          status?: string
+          post_set_data?: Json | null
+          started_at?: string | null
+          ended_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          gig_id?: string
+          venue_id?: string | null
+          set_number?: number
+          configuration?: string
+          genre_style?: string | null
+          status?: string
+          post_set_data?: Json | null
+          started_at?: string | null
+          ended_at?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_sessions_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "performance_sessions_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      song_logs: {
+        Row: {
+          id: string
+          session_id: string
+          song_id: string | null
+          song_title: string | null
+          song_quality: string
+          volume_calibration: string
+          guest_acknowledgment: boolean
+          set_position: number
+          logged_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          song_id?: string | null
+          song_title?: string | null
+          song_quality: string
+          volume_calibration: string
+          guest_acknowledgment?: boolean
+          set_position: number
+          logged_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          song_id?: string | null
+          song_title?: string | null
+          song_quality?: string
+          volume_calibration?: string
+          guest_acknowledgment?: boolean
+          set_position?: number
+          logged_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "performance_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "song_logs_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       songs: {
         Row: {
           id: string
@@ -20,6 +158,8 @@ export interface Database {
           artist: string | null
           sort_order: number
           is_active: boolean
+          energy_level: string | null
+          repertoire_type: string | null
           created_at: string
         }
         Insert: {
@@ -28,6 +168,8 @@ export interface Database {
           artist?: string | null
           sort_order?: number
           is_active?: boolean
+          energy_level?: string | null
+          repertoire_type?: string | null
           created_at?: string
         }
         Update: {
@@ -36,6 +178,8 @@ export interface Database {
           artist?: string | null
           sort_order?: number
           is_active?: boolean
+          energy_level?: string | null
+          repertoire_type?: string | null
           created_at?: string
         }
         Relationships: []
