@@ -51,6 +51,12 @@ Patterns that recurred across 2+ cycles or prevented entire categories of bugs.
 | 7 | **Two independent reviewers > one self-reviewing tool** — Codex reviews first (fresh eyes, no context bias), then Claude Code reviews with compound learnings researcher. Deduplicate findings across both. | Codex integration setup |
 | 8 | **Handoff prompts start with "Read docs/plans/[file].md"** — Codex generates focused Claude Code prompts with exact file paths, scope boundaries, acceptance criteria, and stop conditions. Prevents broad exploration. | Codex `handoff-to-claude-code` skill |
 
+## Process Lessons
+
+| # | Lesson | Source |
+|---|--------|--------|
+| 1 | **Build, don't simulate** — When real-world validation is blocked (slow gig month, no bookings), build the next feature instead of simulating fake gigs. Simulation produces false confidence and is the ADHD research loop in disguise. UX constraints (e.g., 5-7 second between-song logging) can be stress-tested with a real guitar and a timer — no fake data needed. | Cycle 2 pre-brainstorm (2026-03-13) |
+
 ## How to Use
 
 **After a review:** Check Top Patterns before applying fixes — you may be looking at a symptom, not a root cause.
