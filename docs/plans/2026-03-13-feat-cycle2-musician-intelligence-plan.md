@@ -1,7 +1,7 @@
 ---
 title: "feat: Cycle 2 — Musician Intelligence (Pre-Set, Between-Song, Post-Set Logging)"
 type: feat
-status: active
+status: completed
 date: 2026-03-13
 origin: docs/brainstorms/2026-03-13-cycle2-musician-intelligence-brainstorm.md
 feed_forward:
@@ -319,50 +319,50 @@ This guarantees sequential ordering even if concurrent requests arrive (single p
 ## Implementation Phases
 
 ### Phase 1: Schema + Types + Migration (small, foundational)
-- [ ] Write migration SQL: create `venues`, `performance_sessions`, `song_logs` tables + alter `songs`
-- [ ] Add RLS policies (enable + deny-all for anon)
-- [ ] Add unique partial index on `performance_sessions` (one live per gig)
-- [ ] Update `lib/supabase/database.types.ts` with new table definitions
-- [ ] Add type aliases and const arrays to `lib/supabase/types.ts`
-- [ ] Define `PostSetData` interface in `lib/supabase/types.ts`
-- [ ] Apply migration to Supabase
-- [ ] Verify build passes
+- [x] Write migration SQL: create `venues`, `performance_sessions`, `song_logs` tables + alter `songs`
+- [x] Add RLS policies (enable + deny-all for anon)
+- [x] Add unique partial index on `performance_sessions` (one live per gig)
+- [x] Update `lib/supabase/database.types.ts` with new table definitions
+- [x] Add type aliases and const arrays to `lib/supabase/types.ts`
+- [x] Define `PostSetData` interface in `lib/supabase/types.ts`
+- [x] Apply migration to Supabase
+- [x] Verify build passes
 
 **Files:** `supabase/migrations/2026XXXX_add_musician_intelligence.sql`, `lib/supabase/database.types.ts`, `lib/supabase/types.ts`
 
 ### Phase 2: API Routes (backend plumbing)
-- [ ] `app/api/venues/list/route.ts` — GET, auth-gated, service client
-- [ ] `app/api/venues/create/route.ts` — POST, validate name (required), address (optional)
-- [ ] `app/api/session/create/route.ts` — POST, create session with gig_id, venue_id, configuration, genre_style
-- [ ] `app/api/session/go-live/route.ts` — POST, validate session exists + status=pre_set, transition to live + set started_at
-- [ ] `app/api/session/end-set/route.ts` — POST, validate status=live, transition to post_set + set ended_at
-- [ ] `app/api/session/submit-debrief/route.ts` — POST, validate PostSetData shape, save jsonb, transition to complete
-- [ ] `app/api/session/log-song/route.ts` — POST, validate inputs, auto-assign set_position, insert song_log
-- [ ] `app/api/session/undo-log/route.ts` — POST, delete most recent song_log for session
+- [x] `app/api/venues/list/route.ts` — GET, auth-gated, service client
+- [x] `app/api/venues/create/route.ts` — POST, validate name (required), address (optional)
+- [x] `app/api/session/create/route.ts` — POST, create session with gig_id, venue_id, configuration, genre_style
+- [x] `app/api/session/go-live/route.ts` — POST, validate session exists + status=pre_set, transition to live + set started_at
+- [x] `app/api/session/end-set/route.ts` — POST, validate status=live, transition to post_set + set ended_at
+- [x] `app/api/session/submit-debrief/route.ts` — POST, validate PostSetData shape, save jsonb, transition to complete
+- [x] `app/api/session/log-song/route.ts` — POST, validate inputs, auto-assign set_position, insert song_log
+- [x] `app/api/session/undo-log/route.ts` — POST, delete most recent song_log for session
 
 **Files:** 8 new route files in `app/api/`
 
 ### Phase 3: Dashboard State Machine (the phase-driven rendering)
-- [ ] Modify `app/performer/dashboard/page.tsx`: fetch active session, determine phase, conditionally render pre-set / tabs+FAB / post-set / next-set
-- [ ] Ensure session recovery works (existing live session → restore live view on page load)
+- [x] Modify `app/performer/dashboard/page.tsx`: fetch active session, determine phase, conditionally render pre-set / tabs+FAB / post-set / next-set
+- [x] Ensure session recovery works (existing live session → restore live view on page load)
 
 **Files:** `app/performer/dashboard/page.tsx`
 
 ### Phase 4: Pre-Set Form Component
-- [ ] Build `components/pre-set-form.tsx`: venue selector (dropdown + inline create), configuration radio buttons, genre text input, setlist preview, "Go Live" button
-- [ ] Wire to `/api/session/create` + `/api/session/go-live`
-- [ ] Apply glassmorphic styling consistent with existing dashboard
+- [x] Build `components/pre-set-form.tsx`: venue selector (dropdown + inline create), configuration radio buttons, genre text input, setlist preview, "Go Live" button
+- [x] Wire to `/api/session/create` + `/api/session/go-live`
+- [x] Apply glassmorphic styling consistent with existing dashboard
 
 **Files:** `components/pre-set-form.tsx`
 
 ### Phase 5: FAB + Bottom Sheet (the sacred 5-7 seconds — verify_first)
-- [ ] **TEST FIRST:** Build minimal bottom sheet with song list + 3 inputs. Test with guitar + timer before adding polish.
-- [ ] Build `components/song-log-fab.tsx`: fixed-position circular button, bottom-right
-- [ ] Build `components/song-log-sheet.tsx`: bottom sheet with song picker (unplayed first), 3 input rows, auto-submit on last tap, "Not on list" text input fallback
-- [ ] Build `components/last-log-chip.tsx`: shows last logged song + undo, fades after 5 seconds
-- [ ] Wire to `/api/session/log-song` + `/api/session/undo-log`
-- [ ] Optimistic UI: update local state immediately, revert on error
-- [ ] Haptic confirmation on successful log
+- [x] **TEST FIRST:** Build minimal bottom sheet with song list + 3 inputs. Test with guitar + timer before adding polish.
+- [x] Build `components/song-log-fab.tsx`: fixed-position circular button, bottom-right
+- [x] Build `components/song-log-sheet.tsx`: bottom sheet with song picker (unplayed first), 3 input rows, auto-submit on last tap, "Not on list" text input fallback
+- [x] Build `components/last-log-chip.tsx`: shows last logged song + undo, fades after 5 seconds
+- [x] Wire to `/api/session/log-song` + `/api/session/undo-log`
+- [x] Optimistic UI: update local state immediately, revert on error
+- [x] Haptic confirmation on successful log
 
 **Files:** `components/song-log-fab.tsx`, `components/song-log-sheet.tsx`, `components/last-log-chip.tsx`
 
@@ -372,17 +372,17 @@ This guarantees sequential ordering even if concurrent requests arrive (single p
 3. Third: drop to 2 inputs (quality + composite)
 
 ### Phase 6: Post-Set Debrief Form
-- [ ] Build `components/post-set-form.tsx`: all debrief fields, hold-to-confirm "End Set" trigger, submit button
-- [ ] Wire to `/api/session/end-set` + `/api/session/submit-debrief`
-- [ ] Add "Start Next Set" button after debrief submission (pre-populates from previous session)
+- [x] Build `components/post-set-form.tsx`: all debrief fields, hold-to-confirm "End Set" trigger, submit button
+- [x] Wire to `/api/session/end-set` + `/api/session/submit-debrief`
+- [x] Add "Start Next Set" button after debrief submission (pre-populates from previous session)
 
 **Files:** `components/post-set-form.tsx`
 
 ### Phase 7: Integration + Polish
-- [ ] End-to-end flow test: pre-set → go live → log 3+ songs → end set → debrief → complete → start next set
-- [ ] Verify session recovery (refresh during live phase)
-- [ ] Verify build passes
-- [ ] Update HANDOFF.md
+- [x] End-to-end flow test: pre-set → go live → log 3+ songs → end set → debrief → complete → start next set
+- [x] Verify session recovery (refresh during live phase)
+- [x] Verify build passes
+- [x] Update HANDOFF.md
 
 **Files:** `HANDOFF.md`
 
