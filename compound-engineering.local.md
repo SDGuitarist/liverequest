@@ -1,5 +1,11 @@
 # Review Context — LiveRequest
 
+## Agent Team History
+
+| Date | Team | What | Result |
+|------|------|------|--------|
+| 2026-03-29 | Deploy & Ship | Supabase migration + Vercel deploy | Live at liverequest.vercel.app. 3 new tables (venues, performance_sessions, song_logs) with RLS. |
+
 ## Risk Chain
 
 **Brainstorm risk:** Guest page cache behavior is uncertain — `revalidate=60` but `cookies()` may force dynamic rendering. Already-open guest pages will not auto-update regardless.

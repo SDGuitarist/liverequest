@@ -1,27 +1,22 @@
 # HANDOFF — LiveRequest
 
-**Date:** 2026-03-13
-**Branch:** feat/cycle2-musician-intelligence
-**Phase:** Work complete. Musician intelligence logging ready for review.
+**Date:** 2026-03-29
+**Branch:** `main`
+**Phase:** Deployed to production. Ready for manual testing + Cycle 3.
 
 ## Current State
 
-Cycle 2: Musician Intelligence is implemented on `feat/cycle2-musician-intelligence`. Three logging windows added to the performer dashboard:
+Cycle 2 (Musician Intelligence) is merged to main and deployed. The Deploy & Ship agent team (Mar 29) handled:
+1. Supabase migration applied (both 20260301 and 20260313 migrations)
+2. New tables created: venues, performance_sessions, song_logs (all with RLS enabled)
+3. feat/cycle2-musician-intelligence merged to main (fast-forward, no conflicts)
+4. Pushed to GitHub → Vercel auto-deployed (Ready, 26s build)
+5. All 5 env vars confirmed: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, PERFORMER_PASSWORD, COOKIE_SECRET
+6. Smoke test passed: 200 OK on root, /api/venues/list returns 401 (auth required, correct)
 
-1. **Pre-set form** — venue picker (with inline create), configuration, genre, setlist preview → "Go Live"
-2. **Between-song FAB** — bottom sheet with song picker + 3 quick inputs (quality/volume/guest ack), auto-submit on last tap, undo chip
-3. **Post-set debrief** — overall feel, walkups, tips, complaints, staff feedback, observations → "Submit"
+Production URL: https://liverequest.vercel.app
 
-Dashboard is now state-driven: pre_set → live + FAB → post_set → complete → "Start Next Set". Session recovery works on page refresh (DB status is source of truth).
-
-## Key Artifacts
-
-| Phase | Location |
-|-------|----------|
-| Brainstorm | `docs/brainstorms/2026-03-13-cycle2-musician-intelligence-brainstorm.md` |
-| Plan | `docs/plans/2026-03-13-feat-cycle2-musician-intelligence-plan.md` |
-
-## What Was Built
+## What Was Built (Cycle 2)
 
 | Category | Files |
 |----------|-------|
@@ -34,11 +29,12 @@ Dashboard is now state-driven: pre_set → live + FAB → post_set → complete 
 
 ## Not Yet Done
 
-- Migration not applied to Supabase (needs `supabase db push` or SQL Editor)
-- Not deployed to Vercel
+- ~~Migration not applied to Supabase~~ DONE (Mar 29)
+- ~~Not deployed to Vercel~~ DONE (Mar 29)
 - No automated tests (project has zero test infrastructure)
 - FAB timing not yet tested with real guitar + timer (the verify_first risk)
-- GigPrep sync branch not merged (song tags won't be populated yet — they're optional)
+- GigPrep sync branch not merged (song tags won't be populated yet — optional)
+- No Codex code review performed yet
 
 ## Deferred Items
 
@@ -57,10 +53,10 @@ Dashboard is now state-driven: pre_set → live + FAB → post_set → complete 
 
 ```
 Read HANDOFF.md for context. This is LiveRequest, a live musician song request app.
-Branch feat/cycle2-musician-intelligence has Cycle 2 (musician intelligence) complete.
+Cycle 2 (musician intelligence) is deployed to production at liverequest.vercel.app.
+Supabase migration applied, all env vars set.
 Next steps:
-1. Apply migration to Supabase (run SQL in Supabase SQL Editor)
-2. Test the full flow locally (pre-set → go live → log songs → end set → debrief)
-3. Test FAB timing with guitar + timer (the verify_first risk)
-4. Send to Codex for code review before merging
+1. Test the full flow on production (pre-set → go live → log songs → end set → debrief)
+2. Test FAB timing with guitar + timer (the verify_first risk)
+3. Send to Codex for code review before starting Cycle 3
 ```

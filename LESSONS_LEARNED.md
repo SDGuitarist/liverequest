@@ -15,6 +15,7 @@ Hub file for lessons across all development cycles. Detailed writeups live in [`
 | Design Polish | Stagger + haptics (Phase D) | Haptic feedback is progressive enhancement — wrap in feature detection, never assume |
 | Diagnostic Fix | RLS, races, security headers | Open anon RLS policies bypass all API auth — RLS is the real security boundary, not route middleware |
 | Setlist Mgmt | Setlist toggle + review fixes | RLS policies are invisible query filters — admin views must use service client. Match optimistic UI complexity to actual concurrency level. |
+| Deploy (C2) | Agent team deploy + Supabase migration | Agent teams can merge, migrate, and deploy in parallel. Supabase link + push works for pending migrations. Vercel auto-deploys from GitHub push to main. |
 
 ## Top Patterns
 
