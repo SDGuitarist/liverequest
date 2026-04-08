@@ -1,37 +1,28 @@
 # Review Context — LiveRequest
 
-## Agent Team History
-
-| Date | Team | What | Result |
-|------|------|------|--------|
-| 2026-03-29 | Deploy & Ship | Supabase migration + Vercel deploy | Live at liverequest.vercel.app. 3 new tables (venues, performance_sessions, song_logs) with RLS. |
-
 ## Risk Chain
 
-**Brainstorm risk:** Guest page cache behavior is uncertain — `revalidate=60` but `cookies()` may force dynamic rendering. Already-open guest pages will not auto-update regardless.
+**Brainstorm risk:** Whether createAnonClient() on the guest page actually restores ISR caching in Next.js 16.
 
-**Plan mitigation:** Verify cache behavior in Phase 1. If `revalidatePath` has no observable effect, remove it. Guest pages updating live is a future cycle concern (Supabase Realtime on guest page).
+**Plan mitigation:** Research via Context7 confirmed only cookies()/headers()/searchParams/connection/draftMode opt out. params Promise does NOT. Risk downgraded pre-implementation.
 
-**Work risk (from Feed-Forward):** Whether the simplified revert-on-error is sufficient if the API partially succeeds (DB updated, network drops before response). Drift resolves on next page load.
+**Work risk (from Feed-Forward):** RPC null-handling — insert_song_log returns NULL when session not live. API route must distinguish null (409) from error (500) from unique violation 23505 (retry). Three code paths.
 
-**Review resolution:** 4 findings (2 P1, 1 P2, 1 rejected P2) from multi-agent review + browser testing. Top finding: RLS policy hid inactive songs from dashboard (P1 bug caught by browser test, not code review). Over-engineered optimistic UI simplified (44 lines removed, 1 bug fixed). Silent inFlight swallow fixed with disabled state. Guest cache verified working. All P1/P2 fixes applied. 3 P3s deferred (not blocking merge).
+**Review resolution:** Self-review (security + architecture agents) found 1 bug: submit-debrief CAS pattern used `!data && !error` which never fires — PostgREST returns PGRST116 error on zero rows. Fixed to handle PGRST116 explicitly. Architecture review confirmed three-client pattern is clean. No security regressions.
 
 ## Files to Scrutinize
 
 | File | What changed | Risk area |
 |------|-------------|-----------|
-| `app/performer/dashboard/page.tsx` | Split fetch: anon client for requests, service client for songs | Mixing client types — ensure service client only used for admin reads |
-| `components/setlist-manager.tsx` | Simplified from 149→105 lines: removed generation counter, heal timer, refetch. Added useState for inFlight. | Revert-on-error drift if API partially succeeds |
-| `app/api/songs/list/route.ts` | Narrowed select columns, kept service client | Service client required (RLS blocks inactive songs for anon) |
-| `components/dashboard-tabs.tsx` | CSS-hidden tabs (both children always mounted) | RequestQueue realtime must not unmount |
-
-## Cross-Tool Review Protocol
-
-Codex is an independent second-opinion agent in this workflow. For reviews:
-1. Run Codex `review-branch-risks` first (independent findings)
-2. Then run Claude Code `/workflows:review` (compound review with learnings researcher)
-3. Merge both finding sets, deduplicate, and apply fix ordering per CLAUDE.md rules
+| `lib/supabase/server.ts` | Added `createAnonClient()` — third client variant | Client selection confusion in future routes |
+| `app/api/gig/vibe/route.ts` | Swapped to anon client + CAS with PGRST116 | RLS enforcement correctness |
+| `app/api/session/log-song/route.ts` | Replaced manual queries with RPC call + retry | Three code paths (null/23505/error) |
+| `app/api/session/submit-debrief/route.ts` | CAS guard + PGRST116 handling | Same CAS pattern as vibe/toggle |
+| `app/api/gig/toggle/route.ts` | Combined verification + mutation | PGRST116 for "not found" |
+| `app/r/[slug]/page.tsx` | Anon client for ISR restoration | Verify cache headers post-deploy |
+| `supabase/migrations/20260407000000_add_insert_song_log_rpc.sql` | RPC + UNIQUE index | Migration order: code first, then migration |
+| `components/request-queue.tsx` | In-memory song lookup via prop | Stale songs if catalog changes mid-gig |
 
 ## Plan Reference
 
-`docs/plans/2026-03-10-feat-setlist-management-dashboard-plan.md` (complete — review fixes applied)
+`docs/plans/2026-04-07-fix-audit-remediation-plan.md` (complete)

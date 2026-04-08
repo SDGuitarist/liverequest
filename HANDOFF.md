@@ -1,62 +1,70 @@
 # HANDOFF — LiveRequest
 
-**Date:** 2026-03-29
+**Date:** 2026-04-07
 **Branch:** `main`
-**Phase:** Deployed to production. Ready for manual testing + Cycle 3.
+**Phase:** Audit remediation complete. Ready for deploy + migration + Cycle 3 brainstorm.
 
 ## Current State
 
-Cycle 2 (Musician Intelligence) is merged to main and deployed. The Deploy & Ship agent team (Mar 29) handled:
-1. Supabase migration applied (both 20260301 and 20260313 migrations)
-2. New tables created: venues, performance_sessions, song_logs (all with RLS enabled)
-3. feat/cycle2-musician-intelligence merged to main (fast-forward, no conflicts)
-4. Pushed to GitHub → Vercel auto-deployed (Ready, 26s build)
-5. All 5 env vars confirmed: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, PERFORMER_PASSWORD, COOKIE_SECRET
-6. Smoke test passed: 200 OK on root, /api/venues/list returns 401 (auth required, correct)
+Comprehensive 6-agent codebase audit found 25 issues (3 P1, 10 P2, 12 P3). 12 fixes applied across 7 commits (14 files, +219/-110 lines). Self-review caught and fixed 1 additional bug (PGRST116 handling in submit-debrief). All TypeScript checks pass. Migration file ready but not yet applied to Supabase.
 
 Production URL: https://liverequest.vercel.app
 
-## What Was Built (Cycle 2)
+## Key Artifacts
 
-| Category | Files |
-|----------|-------|
-| Migration | `supabase/migrations/20260313000000_add_musician_intelligence.sql` |
-| Schema | `supabase/schema.sql` (updated) |
-| Types | `lib/supabase/database.types.ts`, `lib/supabase/types.ts` |
-| API Routes (8) | `app/api/venues/{list,create}`, `app/api/session/{create,go-live,end-set,submit-debrief,log-song,undo-log}` |
-| Dashboard | `app/performer/dashboard/page.tsx` (state machine) |
-| Components (4) | `components/{pre-set-form,post-set-form,song-log-fab,dashboard-tabs}.tsx` |
+| Phase | Location |
+|-------|----------|
+| Brainstorm | `docs/brainstorms/2026-04-07-audit-remediation-brainstorm.md` |
+| Plan | `docs/plans/2026-04-07-fix-audit-remediation-plan.md` |
+| Solution | `docs/solutions/2026-04-07-audit-remediation-rls-rpc-isr.md` |
 
-## Not Yet Done
+## What Was Fixed
 
-- ~~Migration not applied to Supabase~~ DONE (Mar 29)
-- ~~Not deployed to Vercel~~ DONE (Mar 29)
-- No automated tests (project has zero test infrastructure)
-- FAB timing not yet tested with real guitar + timer (the verify_first risk)
-- GigPrep sync branch not merged (song tags won't be populated yet — optional)
-- No Codex code review performed yet
+| # | Fix | Priority |
+|---|-----|----------|
+| 1 | Atomic set_position via RPC + UNIQUE constraint | P1 |
+| 2 | Vibe endpoint RLS enforcement (anon client) | P1 |
+| 3 | COOKIE_SECRET verified never committed | P1 |
+| 4 | N+1 query elimination (in-memory song lookup) | P2 |
+| 5 | Toggle route round-trip reduction | P2 |
+| 6 | Submit-debrief CAS guard + PGRST116 handling | P2 |
+| 7 | Guest page ISR restoration (anon client) | P2 |
+| 8-12 | Docs fix, dead types, JSON roundtrip, useMemo (x2) | P3 |
+
+## Deploy Steps (not yet done)
+
+1. Push to main (Vercel auto-deploys)
+2. Run preflight query for duplicate set_positions (see migration comments)
+3. Apply migration: `supabase/migrations/20260407000000_add_insert_song_log_rpc.sql`
+4. Verify ISR: `curl -sI https://liverequest.vercel.app/r/alejandro | grep -i cache`
+5. Test vibe endpoint: send vibe, then send again — second should fail
 
 ## Deferred Items
 
-- Dynamic slug management (hardcoded `/r/alejandro`)
-- Supabase Realtime on guest page
-- Separate dev/prod Supabase project
-- Open P3s from setlist management (024, 025, 026)
+- No rate limiting on /api/auth or /api/gig/vibe (needs upstash dependency)
+- Missing CSP header (needs per-feature tuning)
+- No performer_id in JWT (blocks multi-performer, not exploitable now)
+- Client-side-only request limit (RLS has a check, full fix needs policy update)
+- localStorage crash in private browsing (edge case)
+- Component extractions (ToggleSwitch, SegmentedControl)
+- API boilerplate DRY, naming convention alignment
+- database.types.ts regeneration from live DB
+- Dynamic slug management (hardcoded /r/alejandro)
 
-## Feed-Forward
+## Three Questions
 
-- **Hardest decision:** Combining FAB + bottom sheet + song picker + 3 inputs into a single component rather than separate files. Kept it in one `song-log-fab.tsx` because the state flows sequentially (pick song → log inputs → submit). Splitting would add prop-drilling overhead for a tightly coupled flow.
-- **Rejected alternatives:** Separate `song-log-sheet.tsx` and `last-log-chip.tsx` files (plan originally called for 3 components, consolidated to 1 for simplicity).
-- **Least confident:** Whether the bottom sheet song picker works fast enough in a dark venue on a phone. Must test with guitar + timer. Fallback: show only unplayed songs → add top-3 suggestions → drop to 2 inputs.
+1. **Hardest decision?** Folding the session-status check into the RPC rather than leaving it as a separate query. SpecFlow analysis identified the remaining TOCTOU gap.
+2. **What was rejected?** UNIQUE constraint + retry without RPC (messy conflict handling), shared verifyActiveGig() helper (marginal DRY), soft-delete for undo-log (reclassified as correct behavior).
+3. **Least confident about?** Migration rollout ordering. Code must deploy before migration is applied, or .rpc() calls fail.
 
 ## Prompt for Next Session
 
 ```
 Read HANDOFF.md for context. This is LiveRequest, a live musician song request app.
-Cycle 2 (musician intelligence) is deployed to production at liverequest.vercel.app.
-Supabase migration applied, all env vars set.
+Audit remediation (12 fixes from 6-agent audit) is complete on main, not yet deployed.
 Next steps:
-1. Test the full flow on production (pre-set → go live → log songs → end set → debrief)
-2. Test FAB timing with guitar + timer (the verify_first risk)
-3. Send to Codex for code review before starting Cycle 3
+1. Deploy to Vercel (push to main or npx vercel --prod)
+2. Apply Supabase migration (20260407000000_add_insert_song_log_rpc.sql)
+3. Verify ISR cache headers on /r/alejandro
+4. Start Cycle 3 brainstorm (The Gift — post-service summary for venue contacts)
 ```
