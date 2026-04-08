@@ -11,6 +11,16 @@ export function createServiceClient() {
   );
 }
 
+// Anon client without cookies — respects RLS, doesn't opt out of ISR.
+// Use for: guest-facing API routes (vibe), guest pages (song list).
+// Do NOT use for performer routes that need service-role access.
+export function createAnonClient() {
+  return createSupabaseClient<Database>(
+    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+  );
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 
