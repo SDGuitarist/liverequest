@@ -58,6 +58,7 @@ npm run lint     # ESLint
 - **Haptic feedback** — All user confirmations use `navigator.vibrate()` with progressive enhancement.
 - **Glassmorphic performance** — Use `transition-[specific-props]` not `transition-all`. Limit `backdrop-blur` layers on mobile.
 - **Vibe types are strict** — Use `Vibe` union (`"fire" | "more_energy" | "softer"`), never loose strings.
+- **Postgres RPCs only for atomicity** — Use RPCs only when atomicity requires it (e.g., auto-incrementing counters). All RPCs must be typed in `database.types.ts` and created via migrations. Prefer application-layer logic for everything else.
 - After `/workflows:compound`, always run `/update-learnings` to propagate lessons to all docs.
 
 ## Git Conventions
