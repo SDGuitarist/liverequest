@@ -115,8 +115,8 @@ create index idx_requests_gig_created on song_requests(gig_id, created_at desc);
 -- Find sessions for a gig (dashboard state machine)
 create index idx_sessions_gig on performance_sessions(gig_id, created_at desc);
 
--- Find song logs for a session (between-song history)
-create index idx_song_logs_session on song_logs(session_id, set_position);
+-- Find song logs for a session (between-song history) — UNIQUE prevents duplicate positions
+create unique index idx_song_logs_session_position on song_logs(session_id, set_position);
 
 -- ============================================
 -- ROW LEVEL SECURITY
@@ -185,6 +185,37 @@ create policy "Anon can set vibe on requests" on song_requests
 -- Performer dismiss & toggle: handled via service role key in API routes.
 -- No anon DELETE or UPDATE policies needed for played_at — the API route
 -- cookie check is the sole auth gate, and the service role key bypasses RLS.
+
+-- ============================================
+-- FUNCTIONS
+-- ============================================
+
+-- Atomic song log insert — verifies session is live, computes next set_position,
+-- and inserts in a single statement. Returns NULL if session is not live.
+create or replace function insert_song_log(
+  p_session_id uuid,
+  p_song_id uuid,
+  p_song_title text,
+  p_song_quality text,
+  p_volume_calibration text,
+  p_guest_acknowledgment boolean
+) returns song_logs as $$
+  insert into song_logs (
+    session_id, song_id, song_title,
+    song_quality, volume_calibration, guest_acknowledgment,
+    set_position
+  )
+  select
+    p_session_id, p_song_id, p_song_title,
+    p_song_quality, p_volume_calibration, p_guest_acknowledgment,
+    coalesce(max(sl.set_position), 0) + 1
+  from performance_sessions ps
+  left join song_logs sl on sl.session_id = ps.id
+  where ps.id = p_session_id
+    and ps.status = 'live'
+  group by ps.id
+  returning *;
+$$ language sql;
 
 -- ============================================
 -- REALTIME

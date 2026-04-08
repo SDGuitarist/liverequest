@@ -44,45 +44,46 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // Verify session is live before accepting logs
-  const { data: session } = await supabase
-    .from("performance_sessions")
-    .select("status")
-    .eq("id", session_id)
-    .single();
+  // Atomic: verify session is live + compute next set_position + insert
+  // Returns null if session is not live or not found (zero rows from SELECT)
+  const { data, error } = await supabase.rpc("insert_song_log", {
+    p_session_id: session_id,
+    p_song_id: (song_id as string) ?? null,
+    p_song_title: typeof song_title === "string" ? song_title.trim() : null,
+    p_song_quality: song_quality as string,
+    p_volume_calibration: volume_calibration as string,
+    p_guest_acknowledgment: guest_acknowledgment as boolean,
+  });
 
-  if (!session || session.status !== "live") {
-    return NextResponse.json({ error: "Session is not live" }, { status: 409 });
+  // Handle unique violation (23505) — concurrent insert won the race, retry once
+  if (error && error.code === "23505") {
+    const { data: retryData, error: retryError } = await supabase.rpc("insert_song_log", {
+      p_session_id: session_id,
+      p_song_id: (song_id as string) ?? null,
+      p_song_title: typeof song_title === "string" ? song_title.trim() : null,
+      p_song_quality: song_quality as string,
+      p_volume_calibration: volume_calibration as string,
+      p_guest_acknowledgment: guest_acknowledgment as boolean,
+    });
+
+    if (retryError) {
+      console.error("log-song retry failed:", retryError.code, retryError.message);
+      return NextResponse.json({ error: "Operation failed" }, { status: 500 });
+    }
+    if (!retryData) {
+      return NextResponse.json({ error: "Session is not live" }, { status: 409 });
+    }
+    return NextResponse.json(retryData, { status: 201 });
   }
-
-  // Auto-assign set_position
-  const { data: maxPos } = await supabase
-    .from("song_logs")
-    .select("set_position")
-    .eq("session_id", session_id)
-    .order("set_position", { ascending: false })
-    .limit(1)
-    .single();
-
-  const set_position = (maxPos?.set_position ?? 0) + 1;
-
-  const { data, error } = await supabase
-    .from("song_logs")
-    .insert({
-      session_id,
-      song_id: (song_id as string) ?? null,
-      song_title: typeof song_title === "string" ? song_title.trim() : null,
-      song_quality,
-      volume_calibration,
-      guest_acknowledgment,
-      set_position,
-    })
-    .select("*")
-    .single();
 
   if (error) {
     console.error("log-song failed:", error.code, error.message);
     return NextResponse.json({ error: "Operation failed" }, { status: 500 });
+  }
+
+  // RPC returns null when session is not live (WHERE clause filters out all rows)
+  if (!data) {
+    return NextResponse.json({ error: "Session is not live" }, { status: 409 });
   }
 
   return NextResponse.json(data, { status: 201 });
