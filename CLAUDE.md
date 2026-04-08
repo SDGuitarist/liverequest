@@ -57,7 +57,7 @@ npm run lint     # ESLint
 - **Soft-delete, not hard-delete** — Requests are marked `played_at` (timestamp), never removed from DB.
 - **Haptic feedback** — All user confirmations use `navigator.vibrate()` with progressive enhancement.
 - **Glassmorphic performance** — Use `transition-[specific-props]` not `transition-all`. Limit `backdrop-blur` layers on mobile.
-- **Vibe types are strict** — Use `VibeType` union (`"fire" | "energy" | "chill"`), never loose strings.
+- **Vibe types are strict** — Use `Vibe` union (`"fire" | "more_energy" | "softer"`), never loose strings.
 - After `/workflows:compound`, always run `/update-learnings` to propagate lessons to all docs.
 
 ## Git Conventions

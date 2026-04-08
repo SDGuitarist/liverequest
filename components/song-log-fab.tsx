@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import type { Song, SongQuality, VolumeCal, SongLog } from "@/lib/supabase/types";
 import {
   SONG_QUALITY_VALUES,
@@ -30,7 +30,10 @@ export function SongLogFab({ sessionId, songs, initialLogs }: SongLogFabProps) {
   const chipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inFlightRef = useRef(false);
 
-  const loggedSongIds = new Set(logs.map((l) => l.song_id).filter(Boolean));
+  const loggedSongIds = useMemo(
+    () => new Set(logs.map((l) => l.song_id).filter(Boolean)),
+    [logs]
+  );
   const activeSongs = songs.filter((s) => s.is_active);
   // Show unplayed songs first, then played with muted styling
   const unplayedSongs = activeSongs.filter((s) => !loggedSongIds.has(s.id));

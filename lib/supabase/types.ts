@@ -77,20 +77,6 @@ export const CONFIGURATION_LABEL: Record<Configuration, string> = {
   ensemble: "Full Ensemble",
 };
 
-// Song energy level (catalog tag, synced from GigPrep)
-export const ENERGY_LEVEL_VALUES = ["ambient", "medium", "high"] as const;
-export type EnergyLevel = (typeof ENERGY_LEVEL_VALUES)[number];
-
-// Song repertoire type (catalog tag, synced from GigPrep)
-export const REPERTOIRE_TYPE_VALUES = [
-  "instrumental",
-  "instrumental_with_vocals",
-  "vocal_forward",
-  "traditional_cultural",
-  "contemporary_covers",
-] as const;
-export type RepertoireType = (typeof REPERTOIRE_TYPE_VALUES)[number];
-
 // Overall set feel (post-set debrief)
 export const OVERALL_FEEL_VALUES = ["off_night", "fine", "felt_it"] as const;
 export type OverallFeel = (typeof OVERALL_FEEL_VALUES)[number];
