@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
     .select("id")
     .single();
 
-  if (!data && !error) {
+  if (error && error.code === "PGRST116") {
+    // Zero rows matched — session not found or not in post_set status
     return NextResponse.json(
       { error: "Session not found or not in post_set status" },
       { status: 409 }
