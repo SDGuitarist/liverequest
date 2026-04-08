@@ -20,32 +20,34 @@ export default async function GigHistory() {
 
   const supabase = createServiceClient();
 
-  // Fetch non-active gigs, then get counts per gig
-  const { data: rawGigs } = await supabase
-    .from("gigs")
-    .select("id, venue_name, gig_date")
-    .eq("is_active", false)
-    .order("gig_date", { ascending: false });
+  // Fetch non-active gigs with related data in parallel (3 queries, not N per gig)
+  const [gigsResult, allRequests, allSessions] = await Promise.all([
+    supabase.from("gigs").select("id, venue_name, gig_date").eq("is_active", false).order("gig_date", { ascending: false }),
+    supabase.from("song_requests").select("gig_id"),
+    supabase.from("performance_sessions").select("gig_id").in("status", ["complete", "post_set"]),
+  ]);
 
   let gigList: GigSummary[] = [];
 
-  if (rawGigs && rawGigs.length > 0) {
-    // Get counts per gig in parallel (N queries, but N is small — typically < 50 gigs)
-    const counts = await Promise.all(
-      rawGigs.map(async (g) => {
-        const [reqResult, sessResult] = await Promise.all([
-          supabase.from("song_requests").select("id", { count: "exact", head: true }).eq("gig_id", g.id),
-          supabase.from("performance_sessions").select("id", { count: "exact", head: true }).eq("gig_id", g.id).in("status", ["complete", "post_set"]),
-        ]);
-        return {
-          ...g,
-          request_count: reqResult.count ?? 0,
-          session_count: sessResult.count ?? 0,
-        };
-      })
-    );
+  if (gigsResult.data && gigsResult.data.length > 0) {
+    // Count requests and sessions per gig in memory
+    const requestCounts = new Map<string, number>();
+    for (const r of allRequests.data ?? []) {
+      requestCounts.set(r.gig_id, (requestCounts.get(r.gig_id) ?? 0) + 1);
+    }
+    const sessionCounts = new Map<string, number>();
+    for (const s of allSessions.data ?? []) {
+      sessionCounts.set(s.gig_id, (sessionCounts.get(s.gig_id) ?? 0) + 1);
+    }
+
     // "Completed gig" = has at least one request or one session
-    gigList = counts.filter((g) => g.request_count > 0 || g.session_count > 0);
+    gigList = gigsResult.data
+      .map((g) => ({
+        ...g,
+        request_count: requestCounts.get(g.id) ?? 0,
+        session_count: sessionCounts.get(g.id) ?? 0,
+      }))
+      .filter((g) => g.request_count > 0 || g.session_count > 0);
   }
 
   return (

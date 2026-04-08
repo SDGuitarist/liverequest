@@ -45,7 +45,18 @@ export async function getGiftData(gigId: string): Promise<GiftData | null> {
     supabase.from("performance_sessions").select("*").eq("gig_id", gigId).in("status", ["complete", "post_set"]).order("set_number"),
   ]);
 
+  // Gig not found → return null (caller returns 404)
   if (gigResult.error || !gigResult.data) return null;
+
+  // Non-gig query errors → throw (caller returns 500).
+  // Do NOT silently degrade to empty arrays — a failed requests query
+  // would produce a misleading "0 requests" PDF.
+  if (requestsResult.error) {
+    throw new Error(`Failed to fetch requests: ${requestsResult.error.message}`);
+  }
+  if (sessionsResult.error) {
+    throw new Error(`Failed to fetch sessions: ${sessionsResult.error.message}`);
+  }
 
   const gig = gigResult.data;
   const requests = requestsResult.data ?? [];
@@ -53,10 +64,14 @@ export async function getGiftData(gigId: string): Promise<GiftData | null> {
 
   // Dependent query: song logs for fetched sessions
   const sessionIds = sessions.map((s) => s.id);
-  const logsResult = sessionIds.length > 0
-    ? await supabase.from("song_logs").select("*").in("session_id", sessionIds)
-    : { data: [] as { session_id: string; song_quality: string; volume_calibration: string; guest_acknowledgment: boolean }[] };
-  const allLogs = logsResult.data ?? [];
+  let allLogs: { session_id: string; song_quality: string; volume_calibration: string; guest_acknowledgment: boolean }[] = [];
+  if (sessionIds.length > 0) {
+    const logsResult = await supabase.from("song_logs").select("*").in("session_id", sessionIds);
+    if (logsResult.error) {
+      throw new Error(`Failed to fetch song logs: ${logsResult.error.message}`);
+    }
+    allLogs = logsResult.data ?? [];
+  }
 
   // ── Request aggregation ──
   const played = requests.filter((r) => r.played_at !== null).length;
@@ -130,15 +145,25 @@ export async function getGiftData(gigId: string): Promise<GiftData | null> {
 // HELPERS
 // ============================================
 
+// Pacific Flow gigs are in America/Los_Angeles.
+// Use Intl.DateTimeFormat to extract the local hour regardless of server timezone.
+const GIG_TIMEZONE = "America/Los_Angeles";
+
 function computePeakHour(
   requests: { created_at: string }[]
 ): string | null {
   if (requests.length === 0) return null;
 
+  const hourFormatter = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hour12: false,
+    timeZone: GIG_TIMEZONE,
+  });
+
   const hourCounts = new Map<number, number>();
   for (const r of requests) {
-    const hour = new Date(r.created_at).getHours();
-    hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
+    const localHour = parseInt(hourFormatter.format(new Date(r.created_at)), 10);
+    hourCounts.set(localHour, (hourCounts.get(localHour) ?? 0) + 1);
   }
 
   let peakHour = 0;
@@ -150,7 +175,7 @@ function computePeakHour(
     }
   }
 
-  // Format as "8:00 PM"
+  // Format as "8:00 PM" in the gig timezone
   const ampm = peakHour >= 12 ? "PM" : "AM";
   const displayHour = peakHour % 12 || 12;
   return `${displayHour}:00 ${ampm}`;
@@ -175,7 +200,10 @@ function computeTopSongs(
     }
   }
 
-  return Array.from(songCounts.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+  const sorted = Array.from(songCounts.values()).sort((a, b) => b.count - a.count);
+
+  // Include all ties at the 5th position
+  if (sorted.length <= 5) return sorted;
+  const fifthCount = sorted[4].count;
+  return sorted.filter((s, i) => i < 5 || s.count === fifthCount);
 }

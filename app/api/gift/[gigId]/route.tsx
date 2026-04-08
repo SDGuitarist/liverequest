@@ -31,7 +31,14 @@ export async function GET(
     return NextResponse.json({ error: "Invalid ID format" }, { status: 400 });
   }
 
-  const data = await getGiftData(gigId);
+  let data;
+  try {
+    data = await getGiftData(gigId);
+  } catch (err) {
+    // getGiftData throws on partial query failures (not gig-not-found)
+    console.error("Gift data fetch failed:", err);
+    return NextResponse.json({ error: "Failed to load gig data" }, { status: 500 });
+  }
   if (!data) {
     return NextResponse.json({ error: "Gig not found" }, { status: 404 });
   }

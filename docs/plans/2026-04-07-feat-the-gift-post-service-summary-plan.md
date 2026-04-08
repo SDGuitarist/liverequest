@@ -212,7 +212,7 @@ After debrief submission, the dashboard transitions to `complete` phase, which r
 - **Runtime:** Node.js (default, confirmed — no Edge config in codebase)
 - **API:** `renderToBuffer(<GiftDocument data={giftData} />)` → returns `Buffer`
 - **Fonts:** Bundle .ttf files locally in `public/fonts/` (Outfit + Sora). Register via `Font.register({ family: 'Outfit', src: path.join(process.cwd(), 'public/fonts/Outfit-Regular.ttf') })`. **Do NOT use CDN URLs** — they add 300-1200ms on cold start. Font files are 50-200KB each.
-- **Logo:** Bundle PNG in `public/images/` — same local-file rationale as fonts.
+- **Logo:** V1 uses text-only branding ("PACIFIC FLOW ENTERTAINMENT" as styled Text). No logo image asset exists yet. Adding a logo PNG is a future enhancement — when added, bundle in `public/images/` and verify the path on Vercel (same as fonts).
 - **Emoji:** Use text labels (Fire, Energy, Softer) instead of emoji glyphs. `Font.registerEmojiSource()` fetches from Twemoji CDN — same cold-start risk. Emoji in PDFs is fragile across viewers.
 - **Bundle size:** @react-pdf/renderer adds 2-5MB to function. Well within Vercel's 50MB limit.
 - **Timeout budget:** Parallel data queries (~150ms) + renderToBuffer (~400ms) + overhead = ~600-800ms. With cold start: ~2-3s total. Comfortable under 10s free-tier limit.
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 ## Acceptance Criteria
 
 - [ ] `GET /api/gift/[gigId]` returns a valid PDF with `Content-Type: application/pdf`
-- [ ] PDF shows Pacific Flow branding (name, logo placeholder, colors)
+- [ ] PDF shows Pacific Flow branding (name as styled text, amber accent colors)
 - [ ] PDF includes: guest engagement, top 5 songs, vibe distribution, peak timing
 - [ ] PDF includes Stream 2 data (performance quality, observations, walkups) when available
 - [ ] PDF gracefully degrades — Stream 2 sections omitted when no session data exists
@@ -318,7 +318,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 | Risk | Mitigation |
 |------|------------|
-| Font + logo loading on Vercel filesystem | **Bundle fonts locally** in `public/fonts/` and logo in `public/images/`. First commit must verify BOTH font paths AND logo path work on Vercel's read-only filesystem via `path.join(process.cwd(), 'public/...')`. Fallback: system fonts (Helvetica) + text-only header (no logo image). |
+| Font loading on Vercel filesystem | **Bundle fonts locally** in `public/fonts/`. Verified on first commit — fonts work on Vercel's read-only filesystem via `path.join(process.cwd(), 'public/...')`. V1 uses text-only branding (no logo image). |
 | Content-Disposition filename injection | **Sanitize venue name** — strip special chars, limit length. Add `X-Content-Type-Options: nosniff`. |
 | Large gig data (100+ requests) | Server-side aggregation with `Promise.all`. PDF is text-only, no images beyond logo. |
 | History page slow with many gigs | Single aggregate query (not N+1). No pagination V1 — add at ~100 gigs. |
@@ -360,4 +360,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 - **Hardest decision:** Using GET instead of POST for the PDF route. Breaks the codebase's POST-only convention, but GET enables native browser downloads (open in new tab, right-click save). The trade-off is worth it for a file-serving endpoint.
 - **Rejected alternatives:** Client-side PDF generation (avoids serverless constraints but exposes data to client bundle), caching generated PDFs (adds complexity for V1 — generate fresh each time), per-set breakdowns in PDF (valuable but complex layout — use gig-level aggregates for V1).
-- **Least confident:** Whether `@react-pdf/renderer`'s `Font.register()` and `Image` component with local `path.join(process.cwd(), 'public/...')` paths work correctly on Vercel's read-only filesystem. Both fonts and logo need verification on the first commit. Fallback: Helvetica system font + text-only header.
+- **Least confident:** Whether `getGiftData()` handles all Supabase error states correctly under network instability. The fail-fast pattern (throw on query errors, catch in route) is sound, but untested under real failure conditions.
