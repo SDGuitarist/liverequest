@@ -133,6 +133,31 @@ const logsResult = sessionIds.length > 0
 
 **Top 5 songs:** Group by `song_id`, count, sort descending, take 5. If ties at position 5, include all tied songs.
 
+### Zero-Data Contract
+
+`getGiftData()` returns `GiftData | null`. It returns `null` only when the gig row does not exist.
+
+For edge cases, the returned `GiftData` has these exact values:
+
+| Scenario | requests.total | requests.responseRate | requests.peakHour | requests.topSongs | sessions | hasStream2 |
+|----------|---------------|----------------------|-------------------|-------------------|----------|------------|
+| Zero requests, zero sessions | 0 | 0 | null | [] | [] | false |
+| Zero requests, 1+ sessions | 0 | 0 | null | [] | [...session data...] | true |
+| 1+ requests, zero sessions | >0 | computed | computed | [...top 5...] | [] | false |
+| Mixed sessions (complete + post_set) | aggregated | computed | computed | [...top 5...] | all sessions included | true |
+
+**API route behavior for zero-data gigs:**
+- Gig exists but has zero requests AND zero sessions → return **a degraded PDF** (header + "No guest engagement data was recorded for this event" message + footer). Do NOT return 404 or 409 — the gig is real, it just had no trackable activity. The Download button on the history page already hides for gigs with zero requests, so this path is rare (only reachable via direct URL).
+- Gig does not exist → return **404**.
+
+**Explicit computation rules:**
+- `responseRate = total > 0 ? played / total : 0` (never NaN, never undefined)
+- `peakHour = null` when there are no requests
+- `topSongs = []` when there are no requests
+- `vibes = { fire: 0, more_energy: 0, softer: 0 }` when there are no requests
+- `session.debrief = null` when session status is `post_set` (debrief not submitted)
+- **Top-5 aggregation filters out `song_id IS NULL`** before grouping (the schema has `song_id uuid NOT NULL` on `song_requests`, so this is a safety guard, not a functional requirement)
+
 ### Phase 4: Gig History Page
 
 **New file:** `app/performer/history/page.tsx`
@@ -153,13 +178,15 @@ GROUP BY g.id
 ORDER BY g.gig_date DESC
 ```
 
-**"Completed gig" definition:** `is_active = false` AND has at least one song request OR one performance session. This excludes gigs that were never started.
+**"Completed gig" definition (consistent with brainstorm):** `is_active = false` AND has at least one song request OR one performance session with status IN ('complete', 'post_set'). This matches the brainstorm's "any session or any request" rule. Gigs that were never started (no requests, no sessions) are excluded.
 
-**List items show:** Date, venue name, request count, session count, "Download PDF" link.
+**Download button threshold:** At least 1 request OR 1 session with status IN ('complete', 'post_set'). This matches what the API can produce — a gig with only Stream 2 data (sessions but no guest requests) still generates a meaningful Gift with performance quality, observations, and walkups. Hiding the button for session-only gigs would contradict the API's capability.
 
-**No pagination for V1** — newest first, all gigs. Add pagination when count exceeds ~50.
+**List items show:** Date, venue name, request count, session count, "Download PDF" link. The link is always shown for gigs on the history page (since the page query already filters to gigs with at least one request or session).
 
-**Minimum data threshold for Download button:** At least 1 request OR 1 song log. Gigs with zero data show "No data" instead of a download link.
+**No pagination for V1** — newest first, all gigs. Add pagination when count exceeds ~100.
+
+**Session status narrowing (intentional):** The brainstorm says "any session" for history eligibility, but the plan narrows to `status IN ('complete', 'post_set')`. Sessions with status `pre_set` or `live` (abandoned mid-setup) are excluded because they have no meaningful data for the Gift.
 
 ### Phase 5: Post-Debrief Download Link
 
@@ -174,7 +201,9 @@ After debrief submission, the dashboard transitions to `complete` phase, which r
 
 **No state machine change** — the `complete` phase already shows `PreSetForm`. The banner is a conditional element that checks if a session just completed (passed via `previousSession` prop which already exists — see `dashboard/page.tsx:99`).
 
-**Files modified:** `components/pre-set-form.tsx` (add banner), `app/performer/dashboard/page.tsx` (pass `gigId` for download link)
+**Implementation:** The banner uses an `<a href={`/api/gift/${gig.id}`}>` tag (not a button with onClick) to trigger native browser download with cookie delivery. `gig.id` is already available via the existing `gig` prop — no new prop needed.
+
+**Files modified:** `components/pre-set-form.tsx` (add banner with `<a>` download link)
 
 ## Technical Considerations
 
@@ -196,8 +225,20 @@ After debrief submission, the dashboard transitions to `complete` phase, which r
 // NOTE: Single-performer assumption. Multi-performer requires JWT identity
 // binding + gig ownership check (tracked as future work).
 
+// Goal: header safety (no injection) + predictable downloadable filename.
+// 1. Strip everything except word chars, spaces, hyphens, parens, dots
+// 2. Collapse whitespace to single hyphens
+// 3. Trim leading/trailing dots and dashes (avoids hidden files, confusing names)
+// 4. Fallback to "venue" if sanitized result is empty
+// 5. Cap at 80 chars (after fallback, before extension)
 function sanitizeFilename(name: string): string {
-  return name.replace(/[^\w\s\-().]/g, '').replace(/\s+/g, '-').trim().slice(0, 100);
+  const cleaned = name
+    .replace(/[^\w\s\-().]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/^[.\-]+|[.\-]+$/g, '')
+    .trim()
+    .slice(0, 80);
+  return cleaned || 'venue';
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ gigId: string }> }) {
@@ -214,7 +255,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Gig not found" }, { status: 404 });
   }
 
-  const buffer = await renderToBuffer(<GiftDocument data={data} />);
+  let buffer: Buffer;
+  try {
+    buffer = await renderToBuffer(<GiftDocument data={data} />);
+  } catch (err) {
+    console.error("PDF generation failed:", err);
+    return NextResponse.json({ error: "PDF generation failed" }, { status: 500 });
+  }
   const safeName = sanitizeFilename(data.gig.venue_name);
   const filename = `pacific-flow-${safeName}-${data.gig.gig_date}.pdf`;
 
@@ -233,6 +280,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 - Auth-gated via `isAuthenticated()` (same as all performer routes)
 - Uses `createServiceClient()` (performer-only, bypasses RLS)
 - No new public endpoints — the Gift API and history page are performer-only
+- **Cookie delivery on GET:** The `performer_auth` cookie (sameSite: lax) is sent on top-level navigations — `<a href>` clicks, `window.open()`, address bar entry. The download MUST be triggered by an `<a href="/api/gift/{gigId}">` tag or `window.open()` — these trigger native browser download behavior with cookies. Do NOT use `fetch()` — while same-origin `fetch` sends cookies, the response cannot trigger a native file download (would require blob URL + programmatic click, adding unnecessary complexity).
 
 ## What Must NOT Change
 
@@ -260,20 +308,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 5 commits, one per phase:
 
-1. `feat(gift): add @react-pdf/renderer + gift data aggregation` — Phase 1 + 3 (dependency + data layer)
-2. `feat(gift): PDF document component with Pacific Flow branding` — Phase 2
-3. `feat(gift): GET API route for PDF generation` — Phase 1 (route handler)
-4. `feat(gift): gig history page at /performer/history` — Phase 4
+1. `feat(gift): add @react-pdf/renderer + fonts + logo + minimal PDF verify` — Install dependency, bundle fonts in `public/fonts/`, bundle logo in `public/images/`, create a minimal test PDF in the API route that renders one page with a custom font and logo. **Deploy and verify fonts + logo work on Vercel's filesystem before proceeding.**
+2. `feat(gift): gift data aggregation layer` — Phase 3 (`lib/gift-data.ts` with `getGiftData()`)
+3. `feat(gift): PDF document component with Pacific Flow branding` — Phase 2 (`components/gift-pdf.tsx`)
+4. `feat(gift): GET API route + gig history page` — Phase 1 route handler + Phase 4 history page
 5. `feat(gift): post-debrief download banner` — Phase 5
 
 ## Dependencies & Risks
 
 | Risk | Mitigation |
 |------|------------|
-| Font loading cold-start latency | **Bundle fonts locally** in `public/fonts/`. Eliminates 300-1200ms CDN fetch. Verify on first commit. |
+| Font + logo loading on Vercel filesystem | **Bundle fonts locally** in `public/fonts/` and logo in `public/images/`. First commit must verify BOTH font paths AND logo path work on Vercel's read-only filesystem via `path.join(process.cwd(), 'public/...')`. Fallback: system fonts (Helvetica) + text-only header (no logo image). |
 | Content-Disposition filename injection | **Sanitize venue name** — strip special chars, limit length. Add `X-Content-Type-Options: nosniff`. |
 | Large gig data (100+ requests) | Server-side aggregation with `Promise.all`. PDF is text-only, no images beyond logo. |
-| History page slow with many gigs | Single aggregate query (not N+1). No pagination V1 — add at 500+ gigs. |
+| History page slow with many gigs | Single aggregate query (not N+1). No pagination V1 — add at ~100 gigs. |
 | Mixed session states (some complete, some post_set) | Include both. Note missing debrief if applicable. |
 | Single-performer assumption in route | Document as scope fence. Add ownership check when multi-performer lands. |
 
@@ -290,8 +338,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 | File | Change |
 |------|--------|
-| `components/pre-set-form.tsx` | Add download banner for complete phase |
-| `app/performer/dashboard/page.tsx` | Pass gigId to PreSetForm for download link |
+| `components/pre-set-form.tsx` | Add download banner with `<a>` link (uses existing `gig.id` prop) |
 | `package.json` | Add `@react-pdf/renderer` dependency |
 
 ## Sources & References
@@ -313,4 +360,4 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
 - **Hardest decision:** Using GET instead of POST for the PDF route. Breaks the codebase's POST-only convention, but GET enables native browser downloads (open in new tab, right-click save). The trade-off is worth it for a file-serving endpoint.
 - **Rejected alternatives:** Client-side PDF generation (avoids serverless constraints but exposes data to client bundle), caching generated PDFs (adds complexity for V1 — generate fresh each time), per-set breakdowns in PDF (valuable but complex layout — use gig-level aggregates for V1).
-- **Least confident:** Whether `@react-pdf/renderer`'s `Font.register()` with local `path.join(process.cwd(), 'public/fonts/...')` works correctly on Vercel's read-only filesystem. The `public/` directory should be available, but this needs verification on the first commit.
+- **Least confident:** Whether `@react-pdf/renderer`'s `Font.register()` and `Image` component with local `path.join(process.cwd(), 'public/...')` paths work correctly on Vercel's read-only filesystem. Both fonts and logo need verification on the first commit. Fallback: Helvetica system font + text-only header.
