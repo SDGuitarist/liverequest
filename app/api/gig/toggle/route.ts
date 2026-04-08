@@ -25,25 +25,24 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // Verify performer owns this gig
-  const { data: gig } = await supabase
-    .from("gigs")
-    .select("id")
-    .eq("id", gigId)
-    .eq("is_active", true)
-    .single();
-  if (!gig) {
-    return NextResponse.json({ error: "Gig not found or inactive" }, { status: 404 });
-  }
-
-  const { error } = await supabase
+  // Combined: verify gig is active + update in one query
+  const { data, error } = await supabase
     .from("gigs")
     .update({ requests_open: requestsOpen })
-    .eq("id", gigId);
+    .eq("id", gigId)
+    .eq("is_active", true)
+    .select("id")
+    .single();
 
+  if (error && error.code === "PGRST116") {
+    return NextResponse.json({ error: "Gig not found or inactive" }, { status: 404 });
+  }
   if (error) {
     console.error("toggle failed:", error.code, error.message);
     return NextResponse.json({ error: "Operation failed" }, { status: 500 });
+  }
+  if (!data) {
+    return NextResponse.json({ error: "Gig not found or inactive" }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });

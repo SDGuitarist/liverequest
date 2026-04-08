@@ -120,7 +120,7 @@ export default async function PerformerDashboard() {
       <DashboardTabs
         sessionId={session!.id}
         requestsContent={
-          <RequestQueue gig={gig} initialRequests={(requests ?? []) as Parameters<typeof RequestQueue>[0]["initialRequests"]} />
+          <RequestQueue gig={gig} initialRequests={(requests ?? []) as Parameters<typeof RequestQueue>[0]["initialRequests"]} songs={allSongs.map(s => ({ id: s.id, title: s.title, artist: s.artist }))} />
         }
         setlistContent={
           <SetlistManager songs={allSongs} />

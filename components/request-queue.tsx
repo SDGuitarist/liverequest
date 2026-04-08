@@ -27,6 +27,7 @@ interface GroupedSong {
 interface RequestQueueProps {
   gig: Gig;
   initialRequests: SongRequestRow[];
+  songs: { id: string; title: string; artist: string | null }[];
 }
 
 function groupRequests(requests: SongRequestRow[]): GroupedSong[] {
@@ -67,7 +68,7 @@ function timeAgo(dateStr: string): string {
   return `${hours}h ago`;
 }
 
-export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
+export function RequestQueue({ gig, initialRequests, songs }: RequestQueueProps) {
   const [requests, setRequests] = useState<SongRequestRow[]>(initialRequests);
   const [requestsOpen, setRequestsOpen] = useState(gig.requests_open);
   const [connected, setConnected] = useState(true);
@@ -116,36 +117,30 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
           table: "song_requests",
           filter: `gig_id=eq.${gig.id}`,
         },
-        async (payload) => {
+        (payload) => {
           const newReq = payload.new as SongRequest;
 
           // Deduplicate
           if (seenIds.current.has(newReq.id)) return;
           seenIds.current.add(newReq.id);
 
-          // Fetch the song details for this request
-          const { data: song } = await supabase.current
-            .from("songs")
-            .select("id, title, artist")
-            .eq("id", newReq.song_id)
-            .single();
+          // In-memory lookup — no DB query needed
+          const song = songs.find((s) => s.id === newReq.song_id) ?? null;
 
-          if (song) {
-            setRequests((prev) => {
-              if (prev.some((r) => r.id === newReq.id)) return prev;
-              return [
-                {
-                  id: newReq.id,
-                  song_id: newReq.song_id,
-                  created_at: newReq.created_at,
-                  played_at: newReq.played_at ?? null,
-                  vibe: newReq.vibe ?? null,
-                  songs: song,
-                },
-                ...prev,
-              ];
-            });
-          }
+          setRequests((prev) => {
+            if (prev.some((r) => r.id === newReq.id)) return prev;
+            return [
+              {
+                id: newReq.id,
+                song_id: newReq.song_id,
+                created_at: newReq.created_at,
+                played_at: newReq.played_at ?? null,
+                vibe: newReq.vibe ?? null,
+                songs: song,
+              },
+              ...prev,
+            ];
+          });
         }
       )
       .on(
@@ -316,7 +311,10 @@ export function RequestQueue({ gig, initialRequests }: RequestQueueProps) {
   );
   const pendingGrouped = useMemo(() => groupRequests(pendingRequests), [pendingRequests]);
   const playedGrouped = useMemo(() => groupRequests(playedRequests), [playedRequests]);
-  const audienceUrl = `${window.location.origin}/r/alejandro`;
+  const audienceUrl = useMemo(
+    () => typeof window !== "undefined" ? `${window.location.origin}/r/alejandro` : "",
+    []
+  );
 
   return (
     <div className="min-h-screen pb-8">

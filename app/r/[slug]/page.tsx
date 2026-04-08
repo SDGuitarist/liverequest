@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAnonClient } from "@/lib/supabase/server";
 import { SongList } from "@/components/song-list";
 
 // ISR: regenerate every 60 seconds (song list doesn't change during a set)
@@ -10,7 +10,8 @@ interface PageProps {
 
 export default async function AudiencePage({ params }: PageProps) {
   const { slug } = await params;
-  const supabase = await createClient();
+  // Anon client without cookies — respects RLS, doesn't defeat ISR caching
+  const supabase = createAnonClient();
 
   // For MVP: one performer, hardcoded slug. Just validate it matches.
   if (slug !== "alejandro") {

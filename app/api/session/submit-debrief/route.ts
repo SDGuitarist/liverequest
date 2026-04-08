@@ -65,28 +65,21 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // Verify session is in post_set status
-  const { data: session, error: fetchError } = await supabase
+  // Atomic CAS: update only if status is post_set (matches go-live/end-set pattern)
+  const { data, error } = await supabase
     .from("performance_sessions")
-    .select("id, status")
+    .update({ post_set_data: postSetData, status: "complete" })
     .eq("id", session_id)
+    .eq("status", "post_set")
+    .select("id")
     .single();
 
-  if (fetchError || !session) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-  if (session.status !== "post_set") {
+  if (!data && !error) {
     return NextResponse.json(
-      { error: `Cannot submit debrief from status: ${session.status}` },
+      { error: "Session not found or not in post_set status" },
       { status: 409 }
     );
   }
-
-  const { error } = await supabase
-    .from("performance_sessions")
-    .update({ post_set_data: JSON.parse(JSON.stringify(postSetData)), status: "complete" })
-    .eq("id", session_id);
-
   if (error) {
     console.error("submit-debrief failed:", error.code, error.message);
     return NextResponse.json({ error: "Operation failed" }, { status: 500 });
