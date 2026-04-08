@@ -2,6 +2,8 @@ import { createAnonClient } from "@/lib/supabase/server";
 import { SongList } from "@/components/song-list";
 
 // ISR: regenerate every 60 seconds (song list doesn't change during a set)
+// force-static ensures Next.js caches despite non-Next.js fetch calls (Supabase client)
+export const dynamic = "force-static";
 export const revalidate = 60;
 
 interface PageProps {
