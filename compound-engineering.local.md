@@ -2,27 +2,25 @@
 
 ## Risk Chain
 
-**Brainstorm risk:** Whether createAnonClient() on the guest page actually restores ISR caching in Next.js 16.
+**Brainstorm risk:** Whether @react-pdf/renderer works cleanly in Vercel serverless (Node.js APIs, Edge Runtime limitations).
 
-**Plan mitigation:** Research via Context7 confirmed only cookies()/headers()/searchParams/connection/draftMode opt out. params Promise does NOT. Risk downgraded pre-implementation.
+**Plan mitigation:** Verify on first commit with a minimal test route. Bundle fonts locally to avoid CDN cold-start latency. Fallback to system fonts (Helvetica) if local paths fail.
 
-**Work risk (from Feed-Forward):** RPC null-handling — insert_song_log returns NULL when session not live. API route must distinguish null (409) from error (500) from unique violation 23505 (retry). Three code paths.
+**Work risk (from Feed-Forward):** Font loading on Vercel's read-only filesystem via `path.join(process.cwd(), 'public/fonts/...')`.
 
-**Review resolution:** Self-review (security + architecture agents) found 1 bug: submit-debrief CAS pattern used `!data && !error` which never fires — PostgREST returns PGRST116 error on zero rows. Fixed to handle PGRST116 explicitly. Architecture review confirmed three-client pattern is clean. No security regressions.
+**Review resolution:** 5 findings from Codex review — all applied. Top findings: fail-fast on query errors (silent `?? []` degradation), peak hour in wrong timezone (server UTC vs local Pacific), per-gig query fanout on history page, logo/branding scope mismatch. Self-review confirmed zero-data cases match plan spec.
 
 ## Files to Scrutinize
 
 | File | What changed | Risk area |
 |------|-------------|-----------|
-| `lib/supabase/server.ts` | Added `createAnonClient()` — third client variant | Client selection confusion in future routes |
-| `app/api/gig/vibe/route.ts` | Swapped to anon client + CAS with PGRST116 | RLS enforcement correctness |
-| `app/api/session/log-song/route.ts` | Replaced manual queries with RPC call + retry | Three code paths (null/23505/error) |
-| `app/api/session/submit-debrief/route.ts` | CAS guard + PGRST116 handling | Same CAS pattern as vibe/toggle |
-| `app/api/gig/toggle/route.ts` | Combined verification + mutation | PGRST116 for "not found" |
-| `app/r/[slug]/page.tsx` | Anon client for ISR restoration | Verify cache headers post-deploy |
-| `supabase/migrations/20260407000000_add_insert_song_log_rpc.sql` | RPC + UNIQUE index | Migration order: code first, then migration |
-| `components/request-queue.tsx` | In-memory song lookup via prop | Stale songs if catalog changes mid-gig |
+| `lib/gift-data.ts` | New — data aggregation with fail-fast error handling | Query error paths, timezone, top-songs tie logic |
+| `components/gift-pdf.tsx` | New — PDF document component with conditional sections | Stream 2 degradation, font registration |
+| `app/api/gift/[gigId]/route.tsx` | New — first GET route in codebase | Cookie auth on GET, filename sanitization |
+| `app/performer/history/page.tsx` | New — gig history with bulk aggregate queries | Query efficiency, completed-gig definition |
+| `components/pre-set-form.tsx` | Modified — download banner added | Uses `<a>` tag (not fetch) for cookie delivery |
+| `public/fonts/` | New — bundled TTF files | Vercel filesystem access verified |
 
 ## Plan Reference
 
-`docs/plans/2026-04-07-fix-audit-remediation-plan.md` (complete)
+`docs/plans/2026-04-07-feat-the-gift-post-service-summary-plan.md` (complete)
