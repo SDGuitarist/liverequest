@@ -261,7 +261,27 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      insert_song_log: {
+        Args: {
+          p_session_id: string
+          p_song_id: string | null
+          p_song_title: string | null
+          p_song_quality: string
+          p_volume_calibration: string
+          p_guest_acknowledgment: boolean
+        }
+        Returns: {
+          id: string
+          session_id: string
+          song_id: string | null
+          song_title: string | null
+          song_quality: string
+          volume_calibration: string
+          guest_acknowledgment: boolean
+          set_position: number
+          logged_at: string
+        }
+      }
     }
     Enums: {
       [_ in never]: never

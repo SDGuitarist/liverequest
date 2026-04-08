@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   // Atomic CAS: update only if status is post_set (matches go-live/end-set pattern)
   const { data, error } = await supabase
     .from("performance_sessions")
-    .update({ post_set_data: postSetData, status: "complete" })
+    .update({ post_set_data: postSetData as unknown as import("@/lib/supabase/database.types").Json, status: "complete" })
     .eq("id", session_id)
     .eq("status", "post_set")
     .select("id")
