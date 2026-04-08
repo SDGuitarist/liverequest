@@ -127,6 +127,24 @@ export function PreSetForm({ gig, session, songs, venues, previousSession }: Pre
 
   return (
     <div className="min-h-screen px-5 py-6">
+      {/* Gift PDF download banner — shown after completing a set */}
+      {previousSession && (
+        <div className="mb-5 p-4 rounded-xl bg-amber-400/10 border border-amber-400/20">
+          <p className="font-display font-bold text-body text-amber-400 mb-2">
+            Set {previousSession.set_number} complete!
+          </p>
+          <a
+            href={`/api/gift/${gig.id}`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-body text-caption text-surface bg-amber-400 hover:bg-amber-500 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Gift PDF
+          </a>
+        </div>
+      )}
+
       <h1 className="font-display text-title font-bold text-text-primary mb-1">
         {previousSession ? `Set ${previousSession.set_number + 1}` : "Pre-Set Setup"}
       </h1>
