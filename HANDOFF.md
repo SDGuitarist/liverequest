@@ -1,48 +1,37 @@
 # HANDOFF — LiveRequest
 
-**Date:** 2026-04-08
-**Branch:** `main`
-**Phase:** Cycle 3 (The Gift) complete. Ready for deploy verification + Cycle 4 brainstorm.
+**Date:** 2026-04-19
+**Branch:** main
+**Phase:** Cross-Pollination Phase 3 COMPLETE — Test Harness + 51 Foundational Tests
 
 ## Current State
 
-Cycle 3 implements The Gift — a post-service summary PDF auto-generated from gig data. 6 commits + 1 review-fix commit, 4 new files + 2 modifications. @react-pdf/renderer with bundled local fonts verified on Vercel. Codex review found 5 issues (timezone, fail-fast, query fanout, branding, ties) — all applied. Audit remediation (Cycle 2.5) also shipped with RPC migration applied.
+Vitest installed and configured for Next.js 16 App Router. 51 tests passing across 4 test files. Zero to functional test suite in one session. Deployed app on Vercel unaffected.
 
-Production URL: https://liverequest.vercel.app
+## What Changed This Session
 
-## Key Artifacts
-
-| Phase | Location |
-|-------|----------|
-| Brainstorm | `docs/brainstorms/2026-04-07-cycle3-the-gift-brainstorm.md` |
-| Plan | `docs/plans/2026-04-07-feat-the-gift-post-service-summary-plan.md` |
-| Solution | `docs/solutions/2026-04-08-the-gift-post-service-summary-pdf.md` |
-
-## Deferred Items
-
-- Logo image in PDF (V1 is text-only branding)
-- Per-set breakdowns in PDF (V1 is gig-level aggregates)
-- AI narrative generation (V1 is structured template)
-- PDF caching (V1 generates fresh each time)
-- History page pagination (add at ~100 gigs)
-- History page bulk query optimization (filter to inactive gig IDs, not ALL requests/sessions)
-- Dynamic slug management (hardcoded /r/alejandro)
-- Rate limiting on auth + vibe endpoints
-- CSP header
-- No performer_id in JWT (blocks multi-performer)
+| Change | Files |
+|--------|-------|
+| Vitest setup | `vitest.config.ts` (new), `package.json` (test script + devDeps) |
+| UUID validation tests (9) | `lib/validation.test.ts` (new) |
+| Env var tests (4) | `lib/env.test.ts` (new) |
+| Type system tests (16) | `lib/types.test.ts` (new) |
+| API validation pattern tests (22) | `lib/api-validation.test.ts` (new) |
+| Solution doc | `docs/solutions/2026-04-19-cross-pollination-phase3-test-harness.md` |
 
 ## Three Questions
 
-1. **Hardest decision?** Using GET instead of POST for the PDF route. Breaks POST-only convention but enables native browser downloads.
-2. **What was rejected?** Client-side PDF (exposes data), cached PDFs (V1 complexity), AI narrative (API cost), per-set breakdowns (complex layout).
-3. **Least confident about?** History page bulk query fetches ALL requests/sessions (not filtered to inactive gigs). At 10,000+ requests, needs an RPC with proper joins.
+1. **Hardest implementation decision?** Testing validation patterns instead of route handlers. Next.js App Router routes use server-only imports that can't run in plain Vitest. The validation logic is the real risk surface, and it's testable without Next.js.
+2. **What did you consider changing but left alone?** Adding `next-test-api-route` to test route handlers directly. Deferred — the validation pattern tests cover the input validation layer without framework coupling.
+3. **Least confident about going into review?** Whether 51 tests is deep enough for a production app. The auth module (JWT with jose) has zero coverage because it uses `cookies()`. The Supabase interaction layer is untested. Both need integration tests in a future cycle.
 
-## Prompt for Next Session
+### Prompt for Next Session
 
 ```
-Read HANDOFF.md for context. This is LiveRequest, a live musician song request app.
-Cycle 3 (The Gift — post-service summary PDF) is complete on main, deployed.
-Next steps:
-1. Test Gift PDF with a real past gig (log in, go to /performer/history, download)
-2. Start Cycle 4 brainstorm (Session History + CSV Export)
+Read ~/projects/docs/plans/2026-04-19-cross-pollination-hardening-plan.md.
+Phase 3 (liverequest) complete — 51 tests, Vitest harness set up.
+Execute Phase 4: expert-pipeline smoke tests + failure handling.
+Key files: ~/projects/expert-pipeline/orchestrator.py, tools.py, config.py.
+Scope: smoke tests for CLI commands, HTTP failure handling, voice gate validation.
+Target: 25-50 tests from 0.
 ```
