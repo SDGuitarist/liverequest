@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { createClient } from "@/lib/supabase/client";
 import { hapticDismiss } from "@/lib/haptics";
 import { VIBE_EMOJI, type Gig, type SongRequest, type Vibe } from "@/lib/supabase/types";
+import { PERFORMER_SLUG } from "@/lib/constants";
 
 interface SongRequestRow {
   id: string;
@@ -312,7 +313,7 @@ export function RequestQueue({ gig, initialRequests, songs }: RequestQueueProps)
   const pendingGrouped = useMemo(() => groupRequests(pendingRequests), [pendingRequests]);
   const playedGrouped = useMemo(() => groupRequests(playedRequests), [playedRequests]);
   const audienceUrl = useMemo(
-    () => typeof window !== "undefined" ? `${window.location.origin}/r/alejandro` : "",
+    () => typeof window !== "undefined" ? `${window.location.origin}/r/${PERFORMER_SLUG}` : "",
     []
   );
 

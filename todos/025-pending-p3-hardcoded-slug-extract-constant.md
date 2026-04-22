@@ -1,5 +1,5 @@
 ---
-status: pending
+status: resolved
 priority: p3
 issue_id: "025"
 tags: [code-review, architecture, tech-debt]

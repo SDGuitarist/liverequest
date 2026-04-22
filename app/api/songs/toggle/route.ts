@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { isAuthenticated } from "@/lib/auth";
 import { isUUID } from "@/lib/validation";
 import { revalidatePath } from "next/cache";
+import { PERFORMER_SLUG } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
   if (!(await isAuthenticated())) {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     .from("songs")
     .update({ is_active: isActive })
     .eq("id", songId)
-    .select("id");
+    .select("id, title, artist, is_active");
 
   if (error) {
     console.error("song toggle failed:", error.code, error.message);
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Song not found" }, { status: 404 });
   }
 
-  revalidatePath("/r/alejandro");
+  revalidatePath(`/r/${PERFORMER_SLUG}`);
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, song: data[0] });
 }

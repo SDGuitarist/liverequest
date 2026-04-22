@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import type { PostSetData } from "@/lib/supabase/types";
+import { computePeakHour } from "@/lib/time-utils";
 
 // ============================================
 // GIFT DATA TYPES
@@ -29,6 +30,13 @@ export interface GiftData {
     debrief: PostSetData | null;
   }[];
   hasStream2: boolean;
+  rawRequests: {
+    id: string;
+    created_at: string;
+    played_at: string | null;
+    vibe: string | null;
+    songs: { title: string; artist: string | null } | null;
+  }[];
 }
 
 // ============================================
@@ -138,48 +146,21 @@ export async function getGiftData(gigId: string): Promise<GiftData | null> {
     },
     sessions: sessionData,
     hasStream2: sessionData.length > 0,
+    rawRequests: [...requests]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((r) => ({
+        id: r.id,
+        created_at: r.created_at,
+        played_at: r.played_at,
+        vibe: r.vibe,
+        songs: r.songs as { title: string; artist: string | null } | null,
+      })),
   };
 }
 
 // ============================================
 // HELPERS
 // ============================================
-
-// Pacific Flow gigs are in America/Los_Angeles.
-// Use Intl.DateTimeFormat to extract the local hour regardless of server timezone.
-const GIG_TIMEZONE = "America/Los_Angeles";
-
-function computePeakHour(
-  requests: { created_at: string }[]
-): string | null {
-  if (requests.length === 0) return null;
-
-  const hourFormatter = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    hour12: false,
-    timeZone: GIG_TIMEZONE,
-  });
-
-  const hourCounts = new Map<number, number>();
-  for (const r of requests) {
-    const localHour = parseInt(hourFormatter.format(new Date(r.created_at)), 10);
-    hourCounts.set(localHour, (hourCounts.get(localHour) ?? 0) + 1);
-  }
-
-  let peakHour = 0;
-  let peakCount = 0;
-  for (const [hour, count] of hourCounts) {
-    if (count > peakCount) {
-      peakHour = hour;
-      peakCount = count;
-    }
-  }
-
-  // Format as "8:00 PM" in the gig timezone
-  const ampm = peakHour >= 12 ? "PM" : "AM";
-  const displayHour = peakHour % 12 || 12;
-  return `${displayHour}:00 ${ampm}`;
-}
 
 function computeTopSongs(
   requests: { song_id: string; songs: { title: string; artist: string | null } | null }[]
