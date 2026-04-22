@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { isVibe } from "@/lib/supabase/types";
+import { computePeakHour } from "@/lib/time-utils";
 
 // ============================================
 // TYPES
@@ -23,8 +24,6 @@ export function responseRate(r: { total: number; played: number }): number {
 // ============================================
 // DATA AGGREGATION
 // ============================================
-
-const GIG_TIMEZONE = "America/Los_Angeles";
 
 export async function getHistoryStats(): Promise<GigStats[]> {
   const supabase = createServiceClient();
@@ -56,7 +55,7 @@ export async function getHistoryStats(): Promise<GigStats[]> {
     string,
     { played_at: string | null; vibe: string | null; created_at: string }[]
   >();
-  for (const r of allRequests.data ?? []) {
+  for (const r of allRequests.data) {
     const list = requestsByGig.get(r.gig_id) ?? [];
     list.push(r);
     requestsByGig.set(r.gig_id, list);
@@ -64,7 +63,7 @@ export async function getHistoryStats(): Promise<GigStats[]> {
 
   // Count sessions by gig_id
   const sessionCounts = new Map<string, number>();
-  for (const s of allSessions.data ?? []) {
+  for (const s of allSessions.data) {
     sessionCounts.set(s.gig_id, (sessionCounts.get(s.gig_id) ?? 0) + 1);
   }
 
@@ -99,37 +98,3 @@ export async function getHistoryStats(): Promise<GigStats[]> {
   return stats;
 }
 
-// ============================================
-// HELPERS
-// ============================================
-
-function computePeakHour(
-  requests: { created_at: string }[]
-): string | null {
-  if (requests.length === 0) return null;
-
-  const hourFormatter = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    hour12: false,
-    timeZone: GIG_TIMEZONE,
-  });
-
-  const hourCounts = new Map<number, number>();
-  for (const r of requests) {
-    const localHour = parseInt(hourFormatter.format(new Date(r.created_at)), 10);
-    hourCounts.set(localHour, (hourCounts.get(localHour) ?? 0) + 1);
-  }
-
-  let peakHour = 0;
-  let peakCount = 0;
-  for (const [hour, count] of hourCounts) {
-    if (count > peakCount) {
-      peakHour = hour;
-      peakCount = count;
-    }
-  }
-
-  const ampm = peakHour >= 12 ? "PM" : "AM";
-  const displayHour = peakHour % 12 || 12;
-  return `${displayHour}:00 ${ampm}`;
-}
