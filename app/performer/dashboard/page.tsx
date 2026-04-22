@@ -58,7 +58,7 @@ export default async function PerformerDashboard() {
   const [{ data: songs }, { data: venueRows }] = await Promise.all([
     supabaseService
       .from("songs")
-      .select("*")
+      .select("id, title, artist, sort_order, is_active, energy_level, repertoire_type, created_at")
       .order("title", { ascending: true }),
     supabaseService
       .from("venues")
