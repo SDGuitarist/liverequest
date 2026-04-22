@@ -1,37 +1,39 @@
 # HANDOFF — LiveRequest
 
-**Date:** 2026-04-19
+**Date:** 2026-04-21
 **Branch:** main
-**Phase:** Cross-Pollination Phase 3 COMPLETE — Test Harness + 51 Foundational Tests
+**Phase:** Cycle 4 COMPLETE — Session History + CSV Export
 
 ## Current State
 
-Vitest installed and configured for Next.js 16 App Router. 51 tests passing across 4 test files. Zero to functional test suite in one session. Deployed app on Vercel unaffected.
+Enriched `/performer/history` with per-gig stats, new detail page at `/performer/history/[gigId]`, and CSV export at `GET /api/export/history`. All review findings resolved (4/4). Merged via PR #6.
 
 ## What Changed This Session
 
 | Change | Files |
 |--------|-------|
-| Vitest setup | `vitest.config.ts` (new), `package.json` (test script + devDeps) |
-| UUID validation tests (9) | `lib/validation.test.ts` (new) |
-| Env var tests (4) | `lib/env.test.ts` (new) |
-| Type system tests (16) | `lib/types.test.ts` (new) |
-| API validation pattern tests (22) | `lib/api-validation.test.ts` (new) |
-| Solution doc | `docs/solutions/2026-04-19-cross-pollination-phase3-test-harness.md` |
+| Bulk stats aggregation | `lib/history-data.ts` (new) |
+| Enriched history list | `app/performer/history/page.tsx` (modified) |
+| Gig detail page | `app/performer/history/[gigId]/page.tsx` (new) |
+| CSV export endpoint | `app/api/export/history/route.ts` (new) |
+| Shared peak hour utility | `lib/time-utils.ts` (new) |
+| isVibe type guard | `lib/supabase/types.ts` (modified) |
+| rawRequests in GiftData | `lib/gift-data.ts` (modified) |
+| Slug constant extraction | `lib/constants.ts` (new) |
+| Todo resolution (024-026) | Review fixes from prior cycle |
+| Solution doc | `docs/solutions/2026-04-21-cycle4-session-history-csv-export.md` |
 
 ## Three Questions
 
-1. **Hardest implementation decision?** Testing validation patterns instead of route handlers. Next.js App Router routes use server-only imports that can't run in plain Vitest. The validation logic is the real risk surface, and it's testable without Next.js.
-2. **What did you consider changing but left alone?** Adding `next-test-api-route` to test route handlers directly. Deferred — the validation pattern tests cover the input validation layer without framework coupling.
-3. **Least confident about going into review?** Whether 51 tests is deep enough for a production app. The auth module (JWT with jose) has zero coverage because it uses `cookies()`. The Supabase interaction layer is untested. Both need integration tests in a future cycle.
+1. **Hardest implementation decision?** Whether to modify `getGiftData()` to expose `rawRequests`. The plan said "must not change" but the review found a redundant query. Review findings override plan constraints when they identify real bugs.
+2. **What did you consider changing but left alone?** ISR on the history page. Performance reviewer recommended it but `cookies()` in auth opts out of static rendering. Needs a middleware refactor — out of scope.
+3. **Least confident about going forward?** The `rawRequests` addition to GiftData increases payload for Gift PDF renders that don't need individual rows. Negligible at current scale but monitor.
 
 ### Prompt for Next Session
 
 ```
-Read ~/projects/docs/plans/2026-04-19-cross-pollination-hardening-plan.md.
-Phase 3 (liverequest) complete — 51 tests, Vitest harness set up.
-Execute Phase 4: expert-pipeline smoke tests + failure handling.
-Key files: ~/projects/expert-pipeline/orchestrator.py, tools.py, config.py.
-Scope: smoke tests for CLI commands, HTTP failure handling, voice gate validation.
-Target: 25-50 tests from 0.
+Read HANDOFF.md in /Users/alejandroguillen/Projects/liverequest.
+Cycle 4 complete. Next: Brainstorm for Cycle 5 (Analytics + AI Insights)
+or pick up deferred items from roadmap.
+Key docs: docs/roadmap.md, docs/solutions/2026-04-21-cycle4-session-history-csv-export.md
 ```
