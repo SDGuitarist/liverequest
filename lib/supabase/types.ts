@@ -30,6 +30,10 @@ export type PerformanceSession = Omit<
 export const VIBE_VALUES = ["fire", "more_energy", "softer"] as const;
 export type Vibe = (typeof VIBE_VALUES)[number];
 
+export function isVibe(v: string): v is Vibe {
+  return (VIBE_VALUES as readonly string[]).includes(v);
+}
+
 export const VIBE_EMOJI: Record<Vibe, string> = {
   fire: "\uD83D\uDD25",
   more_energy: "\u26A1",

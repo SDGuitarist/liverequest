@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import type { Vibe } from "@/lib/supabase/types";
+import { isVibe } from "@/lib/supabase/types";
 
 // ============================================
 // TYPES
@@ -80,8 +80,8 @@ export async function getHistoryStats(): Promise<GigStats[]> {
     const played = requests.filter((r) => r.played_at !== null).length;
     const vibes = { fire: 0, more_energy: 0, softer: 0 };
     for (const r of requests) {
-      if (r.vibe && r.vibe in vibes) {
-        vibes[r.vibe as Vibe]++;
+      if (r.vibe && isVibe(r.vibe)) {
+        vibes[r.vibe]++;
       }
     }
 

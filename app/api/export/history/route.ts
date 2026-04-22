@@ -36,13 +36,12 @@ const CSV_HEADERS =
 const FORMULA_CHARS = new Set(["=", "+", "-", "@", "|", "\t", "\r"]);
 
 function sanitizeCell(value: string): string {
-  if (value.length > 0 && FORMULA_CHARS.has(value[0])) {
-    return "'" + value;
+  const needsPrefix = value.length > 0 && FORMULA_CHARS.has(value[0]);
+  const escaped = needsPrefix ? "'" + value : value;
+  if (/[,"\n]/.test(escaped)) {
+    return '"' + escaped.replace(/"/g, '""') + '"';
   }
-  if (/[,"\n]/.test(value)) {
-    return '"' + value.replace(/"/g, '""') + '"';
-  }
-  return value;
+  return escaped;
 }
 
 function serializeToCSV(stats: GigStats[]): string {

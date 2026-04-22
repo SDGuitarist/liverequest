@@ -3,7 +3,7 @@ import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { isUUID } from "@/lib/validation";
 import { getGiftData, type GiftData } from "@/lib/gift-data";
-import { VIBE_EMOJI, SONG_QUALITY_LABEL, VOLUME_CAL_LABEL } from "@/lib/supabase/types";
+import { VIBE_EMOJI, SONG_QUALITY_LABEL, isVibe } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -208,8 +208,8 @@ function RequestList({ requests }: { requests: GiftData["rawRequests"] }) {
               )}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              {req.vibe && (
-                <span className="text-sm">{VIBE_EMOJI[req.vibe as keyof typeof VIBE_EMOJI]}</span>
+              {req.vibe && isVibe(req.vibe) && (
+                <span className="text-sm">{VIBE_EMOJI[req.vibe]}</span>
               )}
               <span className={`px-2 py-0.5 rounded-full font-body text-label ${
                 req.played_at
