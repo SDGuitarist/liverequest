@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { isUUID } from "@/lib/validation";
-import { getGiftData } from "@/lib/gift-data";
+import { getGiftData, type GiftData } from "@/lib/gift-data";
 import { VIBE_EMOJI, SONG_QUALITY_LABEL, VOLUME_CAL_LABEL } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function GigDetail({ params }: PageProps) {
   const data = await getGiftData(gigId);
   if (!data) notFound();
 
-  const { gig, requests, sessions, hasStream2 } = data;
+  const { gig, requests, sessions, hasStream2, rawRequests } = data;
 
   return (
     <div
@@ -163,7 +163,7 @@ export default async function GigDetail({ params }: PageProps) {
             </p>
           </div>
         ) : (
-          <RequestList gigId={gig.id} />
+          <RequestList requests={rawRequests} />
         )}
       </div>
     </div>
@@ -181,62 +181,49 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-async function RequestList({ gigId }: { gigId: string }) {
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
+const hourFormatter = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "America/Los_Angeles",
+});
 
-  const { data: rawRequests } = await supabase
-    .from("song_requests")
-    .select("id, created_at, played_at, vibe, songs(title, artist)")
-    .eq("gig_id", gigId)
-    .order("created_at", { ascending: false });
-
-  const requests = rawRequests ?? [];
-  const hourFormatter = new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Los_Angeles",
-  });
-
+function RequestList({ requests }: { requests: GiftData["rawRequests"] }) {
   return (
     <section>
       <h2 className="font-display text-song font-bold text-text-primary mb-2">
         All Requests ({requests.length})
       </h2>
       <div className="flex flex-col gap-1">
-        {requests.map((req) => {
-          const song = req.songs as { title: string; artist: string | null } | null;
-          return (
-            <div
-              key={req.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-surface-raised border border-white/[0.04]"
-            >
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-body text-text-primary truncate">
-                  {song?.title ?? "Unknown"}
-                </p>
-                {song?.artist && (
-                  <p className="font-body text-caption text-text-secondary truncate">{song.artist}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {req.vibe && (
-                  <span className="text-sm">{VIBE_EMOJI[req.vibe as keyof typeof VIBE_EMOJI]}</span>
-                )}
-                <span className={`px-2 py-0.5 rounded-full font-body text-label ${
-                  req.played_at
-                    ? "bg-emerald-400/10 text-emerald-400"
-                    : "bg-white/[0.06] text-text-muted"
-                }`}>
-                  {req.played_at ? "Played" : "Pending"}
-                </span>
-                <span className="font-body text-label text-text-muted">
-                  {hourFormatter.format(new Date(req.created_at))}
-                </span>
-              </div>
+        {requests.map((req) => (
+          <div
+            key={req.id}
+            className="flex items-center gap-3 p-3 rounded-lg bg-surface-raised border border-white/[0.04]"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="font-body text-body text-text-primary truncate">
+                {req.songs?.title ?? "Unknown"}
+              </p>
+              {req.songs?.artist && (
+                <p className="font-body text-caption text-text-secondary truncate">{req.songs.artist}</p>
+              )}
             </div>
-          );
-        })}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {req.vibe && (
+                <span className="text-sm">{VIBE_EMOJI[req.vibe as keyof typeof VIBE_EMOJI]}</span>
+              )}
+              <span className={`px-2 py-0.5 rounded-full font-body text-label ${
+                req.played_at
+                  ? "bg-emerald-400/10 text-emerald-400"
+                  : "bg-white/[0.06] text-text-muted"
+              }`}>
+                {req.played_at ? "Played" : "Pending"}
+              </span>
+              <span className="font-body text-label text-text-muted">
+                {hourFormatter.format(new Date(req.created_at))}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

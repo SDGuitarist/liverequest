@@ -29,6 +29,13 @@ export interface GiftData {
     debrief: PostSetData | null;
   }[];
   hasStream2: boolean;
+  rawRequests: {
+    id: string;
+    created_at: string;
+    played_at: string | null;
+    vibe: string | null;
+    songs: { title: string; artist: string | null } | null;
+  }[];
 }
 
 // ============================================
@@ -138,6 +145,15 @@ export async function getGiftData(gigId: string): Promise<GiftData | null> {
     },
     sessions: sessionData,
     hasStream2: sessionData.length > 0,
+    rawRequests: [...requests]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map((r) => ({
+        id: r.id,
+        created_at: r.created_at,
+        played_at: r.played_at,
+        vibe: r.vibe,
+        songs: r.songs as { title: string; artist: string | null } | null,
+      })),
   };
 }
 
