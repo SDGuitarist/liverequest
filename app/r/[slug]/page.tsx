@@ -1,5 +1,6 @@
 import { createAnonClient } from "@/lib/supabase/server";
 import { SongList } from "@/components/song-list";
+import { PERFORMER_SLUG } from "@/lib/constants";
 
 // ISR: regenerate every 60 seconds (song list doesn't change during a set)
 // force-static ensures Next.js caches despite non-Next.js fetch calls (Supabase client)
@@ -16,7 +17,7 @@ export default async function AudiencePage({ params }: PageProps) {
   const supabase = createAnonClient();
 
   // For MVP: one performer, hardcoded slug. Just validate it matches.
-  if (slug !== "alejandro") {
+  if (slug !== PERFORMER_SLUG) {
     return (
       <div className="flex min-h-screen items-center justify-center px-8">
         <p className="font-body text-body text-text-secondary text-center">
