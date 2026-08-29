@@ -77,10 +77,18 @@ export function RequestQueue({ gig, initialRequests, songs }: RequestQueueProps)
   const [showQR, setShowQR] = useState(false);
   const seenIds = useRef(new Set(initialRequests.map((r) => r.id)));
   const supabase = useRef(createClient());
+  const songsRef = useRef(songs);
   const fetchGen = useRef(0);
   const toggleInFlight = useRef(false);
   const dismissInFlight = useRef(new Set<string>());
   const [, setTick] = useState(0);
+
+  // Keep the latest setlist reachable from the realtime handler without putting
+  // `songs` in its dep array. The parent rebuilds that array on every render, so
+  // adding it there would tear down and resubscribe the channel each time.
+  useEffect(() => {
+    songsRef.current = songs;
+  }, [songs]);
 
   // Update relative timestamps every 30s
   useEffect(() => {
@@ -126,7 +134,7 @@ export function RequestQueue({ gig, initialRequests, songs }: RequestQueueProps)
           seenIds.current.add(newReq.id);
 
           // In-memory lookup — no DB query needed
-          const song = songs.find((s) => s.id === newReq.song_id) ?? null;
+          const song = songsRef.current.find((s) => s.id === newReq.song_id) ?? null;
 
           setRequests((prev) => {
             if (prev.some((r) => r.id === newReq.id)) return prev;
